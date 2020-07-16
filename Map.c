@@ -27,11 +27,11 @@ struct map {
 };
 
 static void addConnections(Map m);
-static void addConnection(Map m, PlaceId v, PlaceId w, TransportType type);
+static void addConnection(Map m, PlaceId start, PlaceId end, TransportType type);
 static inline bool isSentinelEdge(Connection c);
 
-static ConnList connListInsert(ConnList l, PlaceId v, TransportType type);
-static bool connListContains(ConnList l, PlaceId v, TransportType type);
+static ConnList connListInsert(ConnList l, PlaceId p, TransportType type);
+static bool connListContains(ConnList l, PlaceId p, TransportType type);
 
 ////////////////////////////////////////////////////////////////////////
 

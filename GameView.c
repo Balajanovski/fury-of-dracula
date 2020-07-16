@@ -18,72 +18,139 @@
 #include "GameView.h"
 #include "Map.h"
 #include "Places.h"
-// add your own #includes here
-
-// TODO: ADD YOUR OWN STRUCTS HERE
 
 struct gameView {
-	// TODO: ADD FIELDS HERE
+	int player_healths[NUM_PLAYERS];
+	PlaceId player_locations[NUM_PLAYERS];
+	PlaceId vampire_location;
+	Map map;
+	int round_number;
+	Player current_player;
+	int score;
 };
+
+////////////////////////////////////////////////////////////////////////
+// Private methods
+
+#define IS_DRACULA(player_id) ((player_id) == PLAYER_DRACULA)
+#define IS_HUNTER(player_id) (!IS_DRACULA(player_id))
+
+// Sets the game view's state to its default beginning state
+static inline void set_default_gamestate(GameView gv) {
+    // Set player healths
+    for (int player = 0; player < NUM_PLAYERS; ++player) {
+        if (IS_DRACULA((player))) {
+            gv->player_healths[player] = GAME_START_BLOOD_POINTS;
+        } else if (IS_HUNTER((player))) {
+            gv->player_healths[player] = GAME_START_HUNTER_LIFE_POINTS;
+        } else {
+            fprintf(stderr, "Anomalous player who is neither a hunter nor dracula detected. Aborting...\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // Set player locations to dummy value which represents an unchosen location
+    for (int player = 0; player < NUM_PLAYERS; ++player) {
+        gv->player_locations[player] = NOWHERE;
+    }
+
+    // Create the game map
+    gv->map = MapNew();
+    if (gv->map == NULL) {
+        fprintf(stderr, "Couldn't allocate map!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    gv->round_number = 0;
+    gv->current_player = PLAYER_LORD_GODALMING;
+    gv->score = GAME_START_SCORE;
+    gv->vampire_location = NOWHERE;
+}
+
+static inline PlaceId make_location_unknown(PlaceId location) {
+    if (location == NOWHERE || location == UNKNOWN_PLACE || location == CITY_UNKNOWN || location == SEA_UNKNOWN) {
+        return location;
+    }
+
+
+}
 
 ////////////////////////////////////////////////////////////////////////
 // Constructor/Destructor
 
-GameView GvNew(char *pastPlays, Message messages[])
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+GameView GvNew(char *pastPlays, Message messages[]) {
 	GameView new = malloc(sizeof(*new));
 	if (new == NULL) {
 		fprintf(stderr, "Couldn't allocate GameView!\n");
 		exit(EXIT_FAILURE);
 	}
 
+	set_default_gamestate(new);
+
+	// TODO: modify gamestate based on pastPlays
+
 	return new;
 }
 
-void GvFree(GameView gv)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+void GvFree(GameView gv) {
+    assert(gv != NULL);
+    assert(gv->map != NULL);
+
+    free(gv->map);
 	free(gv);
 }
 
 ////////////////////////////////////////////////////////////////////////
 // Game State Information
 
-Round GvGetRound(GameView gv)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return 0;
+Round GvGetRound(GameView gv) {
+    assert(gv != NULL);
+	return gv->round_number;
 }
 
-Player GvGetPlayer(GameView gv)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return PLAYER_LORD_GODALMING;
+Player GvGetPlayer(GameView gv) {
+    assert(gv != NULL);
+	return gv->current_player;
 }
 
-int GvGetScore(GameView gv)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return 0;
+int GvGetScore(GameView gv) {
+    assert(gv != NULL);
+	int score = gv->score;
+
+#ifndef NDEBUG
+	if (score < 0 || score > 366) {
+	    fprintf(stderr, "Score anomalously found to be outside allowed interval [0, 366]. Aborting....\n");
+	    exit(EXIT_FAILURE);
+	}
+#endif
+
+	return score;
 }
 
-int GvGetHealth(GameView gv, Player player)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return 0;
+int GvGetHealth(GameView gv, Player player) {
+	assert(player >= 0 && player < NUM_PLAYERS);
+	assert(gv != NULL);
+	return gv->player_healths[player];
 }
 
-PlaceId GvGetPlayerLocation(GameView gv, Player player)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return NOWHERE;
+PlaceId GvGetPlayerLocation(GameView gv, Player player) {
+	assert(gv != NULL);
+	assert(player >= 0 && player < NUM_PLAYERS);
+	int actual_loc = gv->player_locations[player];
+
+	if (actual_loc == NOWHERE || IS_HUNTER(player)) {
+	    return actual_loc;
+	} else if (IS_DRACULA(player)) {
+	    // TODO: Implement move reveal logic
+	    return actual_loc;
+	} else {
+	    fprintf(stderr, "Unknown case in GvGetPlayerLocation. Aborting....\n");
+	    exit(EXIT_FAILURE);
+	}
 }
 
-PlaceId GvGetVampireLocation(GameView gv)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return NOWHERE;
+PlaceId GvGetVampireLocation(GameView gv) {
+
 }
 
 PlaceId *GvGetTrapLocations(GameView gv, int *numTraps)
