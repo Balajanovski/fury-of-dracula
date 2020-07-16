@@ -67,12 +67,21 @@ static inline void set_default_gamestate(GameView gv) {
     gv->vampire_location = NOWHERE;
 }
 
+// Convert the location into its unknown equivalent
 static inline PlaceId make_location_unknown(PlaceId location) {
-    if (location == NOWHERE || location == UNKNOWN_PLACE || location == CITY_UNKNOWN || location == SEA_UNKNOWN) {
+    if (location == NOWHERE || location == UNKNOWN_PLACE || (location >= CITY_UNKNOWN && location <= TELEPORT)) {
         return location;
     }
 
-
+    PlaceType loc_type = placeIdToType(location);
+    if (loc_type == SEA) {
+        return SEA_UNKNOWN;
+    } else if (loc_type == LAND) {
+        return CITY_UNKNOWN;
+    } else {
+        fprintf(stderr, "Unhandled case supplied to make_location_unknown of %d. Aborting...\n", location);
+        exit(EXIT_FAILURE);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -142,7 +151,7 @@ PlaceId GvGetPlayerLocation(GameView gv, Player player) {
 	    return actual_loc;
 	} else if (IS_DRACULA(player)) {
 	    // TODO: Implement move reveal logic
-	    return actual_loc;
+	    return make_location_unknown(actual_loc);
 	} else {
 	    fprintf(stderr, "Unknown case in GvGetPlayerLocation. Aborting....\n");
 	    exit(EXIT_FAILURE);
