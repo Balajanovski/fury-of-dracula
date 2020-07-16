@@ -109,7 +109,7 @@ static void simulate_past_plays(GameView gv, char* past_plays) {
     char* next_move_start_ptr = past_plays;
 
     while (*next_move_start_ptr != '\0') {
-
+        // TODO: Change gv based on moves
 
         next_move_start_ptr += NUMBER_OF_CHARACTERS_IN_A_MOVE;
     }
