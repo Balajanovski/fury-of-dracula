@@ -58,9 +58,11 @@ bool push(DraculaTrail trail, DraculaMove move, DraculaMove* popped_move) {
         move_popped = true;
         *popped_move = trail->queue_array[trail->queue_start_index];
 
+        --trail->num_elements;
         trail->queue_start_index = (trail->queue_start_index + 1) % DRACULA_TRAIL_MAX_LENGTH;
     }
 
+    ++trail->num_elements;
     trail->queue_array[trail->queue_end_index] = move;
     trail->queue_end_index = (trail->queue_end_index + 1) % DRACULA_TRAIL_MAX_LENGTH;
 
