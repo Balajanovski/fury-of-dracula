@@ -22,6 +22,8 @@
 #include "Places.h"
 // add your own #includes here
 
+#define NUMBER_OF_CHARACTERS_IN_A_MOVE 7
+
 typedef struct gameView *GameView;
 
 ////////////////////////////////////////////////////////////////////////
@@ -253,7 +255,5 @@ PlaceId *GvGetReachableByType(GameView gv, Player player, Round round,
 
 ////////////////////////////////////////////////////////////////////////
 // Your own interface functions
-
-// TODO
 
 #endif // !defined (FOD__GAME_VIEW_H_)

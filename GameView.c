@@ -69,6 +69,8 @@ static inline void set_default_gamestate(GameView gv) {
 
 // Convert the location into its unknown equivalent
 static inline PlaceId make_location_unknown(PlaceId location) {
+    assert(placeIsReal(location));
+
     if (location == NOWHERE || location == UNKNOWN_PLACE || (location >= CITY_UNKNOWN && location <= TELEPORT)) {
         return location;
     }
@@ -84,10 +86,39 @@ static inline PlaceId make_location_unknown(PlaceId location) {
     }
 }
 
+static Player player_id_from_move_string(char* move_string) {
+    char player_character = move_string[0];
+
+    switch (player_character) {
+        case 'G':
+            return PLAYER_LORD_GODALMING;
+        case 'S':
+            return PLAYER_DR_SEWARD;
+        case 'H':
+            return PLAYER_VAN_HELSING;
+        case 'M':
+            return PLAYER_MINA_HARKER;
+        default:
+            fprintf(stderr, "Unhandled case supplied to player_id_from_move_string of %s. Aborting...\n", move_string);
+            exit(EXIT_FAILURE);
+    }
+}
+
+// Simulate past plays
+static void simulate_past_plays(GameView gv, char* past_plays) {
+    char* next_move_start_ptr = past_plays;
+
+    while (*next_move_start_ptr != '\0') {
+
+
+        next_move_start_ptr += NUMBER_OF_CHARACTERS_IN_A_MOVE;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Constructor/Destructor
 
-GameView GvNew(char *pastPlays, Message messages[]) {
+GameView GvNew(char *past_plays, Message messages[]) {
 	GameView new = malloc(sizeof(*new));
 	if (new == NULL) {
 		fprintf(stderr, "Couldn't allocate GameView!\n");
@@ -159,7 +190,8 @@ PlaceId GvGetPlayerLocation(GameView gv, Player player) {
 }
 
 PlaceId GvGetVampireLocation(GameView gv) {
-
+    // TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+    return NOWHERE;
 }
 
 PlaceId *GvGetTrapLocations(GameView gv, int *numTraps)

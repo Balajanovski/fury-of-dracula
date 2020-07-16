@@ -153,8 +153,7 @@ static inline bool isSentinelEdge(Connection c)
 }
 
 /// Insert a node into an adjacency list.
-static ConnList connListInsert(ConnList l, PlaceId p, TransportType type)
-{
+static ConnList connListInsert(ConnList l, PlaceId p, TransportType type) {
 	assert(placeIsReal(p));
 	assert(transportTypeIsValid(type));
 
@@ -171,8 +170,7 @@ static ConnList connListInsert(ConnList l, PlaceId p, TransportType type)
 }
 
 /// Does this adjacency list contain a particular value?
-static bool connListContains(ConnList l, PlaceId p, TransportType type)
-{
+static bool connListContains(ConnList l, PlaceId p, TransportType type) {
 	assert(placeIsReal(p));
 	assert(transportTypeIsValid(type));
 
@@ -187,8 +185,7 @@ static bool connListContains(ConnList l, PlaceId p, TransportType type)
 
 ////////////////////////////////////////////////////////////////////////
 
-ConnList MapGetConnections(Map m, PlaceId p)
-{
+ConnList MapGetConnections(Map m, PlaceId p) {
 	assert(placeIsReal(p));
 	return m->connections[p];
 }
