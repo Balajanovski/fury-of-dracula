@@ -22,7 +22,9 @@
 #include "Places.h"
 // add your own #includes here
 
-#define NUMBER_OF_CHARACTERS_IN_A_MOVE 7
+#define ENCOUNTERS_STRING_LEN 4
+#define CHARACTERS_IN_DRACULA_ENCOUNTER 2
+#define CHARACTERS_IN_DRACULA_ACTION 1
 
 typedef struct gameView *GameView;
 
