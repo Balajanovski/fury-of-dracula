@@ -9,8 +9,6 @@
 
 #include "DraculaMove.h"
 
-#define DRACULA_TRAIL_MAX_LENGTH 6
-
 
 typedef struct draculaTrail* DraculaTrail;
 

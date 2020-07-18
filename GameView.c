@@ -13,20 +13,25 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "Game.h"
 #include "GameView.h"
 #include "Map.h"
 #include "Places.h"
+#include "DraculaTrail.h"
 
 struct gameView {
 	int player_healths[NUM_PLAYERS];
 	PlaceId player_locations[NUM_PLAYERS];
-	PlaceId vampire_location;
 	Map map;
 	int round_number;
 	Player current_player;
 	int score;
+	DraculaTrail dracula_trail;
+
+    PlaceId vampire_location;
+	PlaceId trap_locations[TRAIL_SIZE];
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -34,6 +39,8 @@ struct gameView {
 
 #define IS_DRACULA(player_id) ((player_id) == PLAYER_DRACULA)
 #define IS_HUNTER(player_id) (!IS_DRACULA(player_id))
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 // Sets the game view's state to its default beginning state
 static inline void set_default_gamestate(GameView gv) {
@@ -54,17 +61,14 @@ static inline void set_default_gamestate(GameView gv) {
         gv->player_locations[player] = NOWHERE;
     }
 
-    // Create the game map
-    gv->map = MapNew();
-    if (gv->map == NULL) {
-        fprintf(stderr, "Couldn't allocate map!\n");
-        exit(EXIT_FAILURE);
-    }
-
     gv->round_number = 0;
     gv->current_player = PLAYER_LORD_GODALMING;
     gv->score = GAME_START_SCORE;
     gv->vampire_location = NOWHERE;
+
+    for (int i = 0; i < TRAIL_SIZE; ++i) {
+        gv->trap_locations[i] = NOWHERE;
+    }
 }
 
 // Convert the location into its unknown equivalent
@@ -104,14 +108,107 @@ static Player player_id_from_move_string(char* move_string) {
     }
 }
 
+static void remove_trap(GameView gv, PlaceId location) {
+    for (int i = 0; i < TRAIL_SIZE; ++i) {
+        if (gv->trap_locations[i] == location) {
+            gv->trap_locations[i] = NOWHERE;
+            break;
+        }
+    }
+}
+
+static void add_trap(GameView gv, PlaceId location) {
+    for (int i = 0; i < TRAIL_SIZE; ++i) {
+        if (gv->trap_locations[i] == NOWHERE) {
+            gv->trap_locations[i] = location;
+            break;
+        }
+    }
+}
+
+static void apply_hunter_encounters(GameView gv, Player curr_player, PlaceId location, const char* encounters_str) {
+    for (int i = 0; i < ENCOUNTERS_STRING_LEN && gv->player_healths[curr_player] > 0; ++i) {
+        switch(encounters_str[i]) {
+            case 'T':
+            {
+                gv->player_healths[curr_player] -= LIFE_LOSS_TRAP_ENCOUNTER;
+                remove_trap(gv, location);
+            }
+                break;
+            case 'V':
+            {
+                gv->vampire_location = NOWHERE;
+            }
+                break;
+            case 'D':
+            {
+                gv->player_healths[curr_player] -= LIFE_LOSS_DRACULA_ENCOUNTER;
+                gv->player_healths[PLAYER_DRACULA] -= LIFE_LOSS_HUNTER_ENCOUNTER;
+            }
+                break;
+        }
+    }
+
+    if (gv->player_healths[curr_player] <= 0) {
+        gv->player_healths[curr_player] = GAME_START_HUNTER_LIFE_POINTS;
+        gv->player_locations[curr_player] = HOSPITAL_PLACE;
+        gv->score -= SCORE_LOSS_HUNTER_HOSPITAL;
+    }
+}
+
+
+static void apply_dracula_encounters_and_actions(GameView gv, PlaceId location, const char* encounters_and_actions_str) {
+    for (int i = 0; i < CHARACTERS_IN_DRACULA_ENCOUNTER; ++i) {
+        switch(encounters_and_actions_str[i]) {
+            case 'T':
+            {
+                add_trap(gv, location);
+            }
+                break;
+            case 'V':
+            {
+                gv->vampire_location = location;
+            }
+                break;
+        }
+    }
+
+    for (int i = 0; i < CHARACTERS_IN_DRACULA_ACTION; ++i) {
+        switch(encounters_and_actions_str[i]) {
+            case 'M':
+            {
+                remove_trap(gv, location);
+            }
+                break;
+            case 'V':
+            {
+                gv->score -= SCORE_LOSS_VAMPIRE_MATURES;
+            }
+                break;
+        }
+    }
+}
+
 // Simulate past plays
 static void simulate_past_plays(GameView gv, char* past_plays) {
-    char* next_move_start_ptr = past_plays;
+    const char* delimiters = " \n";
+    char* move = strtok(past_plays, delimiters);
 
-    while (*next_move_start_ptr != '\0') {
-        // TODO: Change gv based on moves
+    while (move != NULL) {
+        Player move_player = player_id_from_move_string(move);
+        PlaceId new_loc = placeAbbrevToId(move+1);
 
-        next_move_start_ptr += NUMBER_OF_CHARACTERS_IN_A_MOVE;
+        if (IS_DRACULA(move_player)) {
+            apply_dracula_encounters_and_actions(gv, new_loc, move + 2);
+        } else {
+            apply_hunter_encounters(gv, gv->current_player, new_loc, move+2);
+        }
+
+        gv->player_locations[move_player] = new_loc;
+        ++gv->round_number;
+        gv->current_player = (move_player+1) % NUM_PLAYERS;
+
+        move = strtok(NULL, delimiters);
     }
 }
 
@@ -125,9 +222,23 @@ GameView GvNew(char *past_plays, Message messages[]) {
 		exit(EXIT_FAILURE);
 	}
 
+	// Create Dracula's trail of destruction
+	new->dracula_trail = new_trail();
+	if (new->dracula_trail == NULL) {
+        fprintf(stderr, "Couldn't allocate dracula trail!\n");
+        exit(EXIT_FAILURE);
+	}
+
+    // Create the game map
+    new->map = MapNew();
+    if (new->map == NULL) {
+        fprintf(stderr, "Couldn't allocate map!\n");
+        exit(EXIT_FAILURE);
+    }
+
 	set_default_gamestate(new);
 
-	// TODO: modify gamestate based on pastPlays
+	simulate_past_plays(new, past_plays);
 
 	return new;
 }
@@ -135,7 +246,9 @@ GameView GvNew(char *past_plays, Message messages[]) {
 void GvFree(GameView gv) {
     assert(gv != NULL);
     assert(gv->map != NULL);
+    assert(gv->dracula_trail != NULL);
 
+    free(gv->dracula_trail);
     free(gv->map);
 	free(gv);
 }
