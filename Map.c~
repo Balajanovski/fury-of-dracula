@@ -20,7 +20,6 @@
 #include "Map.h"
 #include "Places.h"
 
-
 struct map {
 	int nV; // number of vertices
 	int nE; // number of edges
