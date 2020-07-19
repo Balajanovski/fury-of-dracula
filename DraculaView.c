@@ -23,7 +23,7 @@
 // TODO: ADD YOUR OWN STRUCTS HERE
 
 struct draculaView {
-	// TODO: ADD FIELDS HERE
+	GameView dracInfo;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -38,12 +38,14 @@ DraculaView DvNew(char *pastPlays, Message messages[])
 		exit(EXIT_FAILURE);
 	}
 
+	new->dracInfo = GvNew(pastPlays, messages);
+
 	return new;
 }
 
 void DvFree(DraculaView dv)
 {
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+	GvFree(dv->dracInfo);
 	free(dv);
 }
 
@@ -52,56 +54,61 @@ void DvFree(DraculaView dv)
 
 Round DvGetRound(DraculaView dv)
 {
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return 0;
+	assert(dv != NULL);
+	return GvGetRound(dv->dracInfo);
 }
 
 int DvGetScore(DraculaView dv)
 {
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return 0;
+	assert(dv != NULL);
+	return GvGetScore(dv->dracInfo);
 }
 
 int DvGetHealth(DraculaView dv, Player player)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return 0;
+{	
+	assert(dv != NULL);
+	return GvGetHealth(dv->dracInfo, player);
 }
 
 PlaceId DvGetPlayerLocation(DraculaView dv, Player player)
 {
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return NOWHERE;
+	assert(dv != NULL);
+	return GvGetPlayerLocation(dv->dracInfo, player);
 }
 
 PlaceId DvGetVampireLocation(DraculaView dv)
 {
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return NOWHERE;
+	assert(dv != NULL);
+	return GvGetDracula(dv->dracInfo);
 }
 
 PlaceId *DvGetTrapLocations(DraculaView dv, int *numTraps)
 {
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*numTraps = 0;
-	return NULL;
+	assert(dv != NULL);
+	assert(numTraps != NULL);
+	return GvGetTrapLocations(dv->dracInfo, numTraps);
 }
 
 ////////////////////////////////////////////////////////////////////////
 // Making a Move
 
+
+/* */
 PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 {
+	assert(dv != NULL);
+	assert(numReturnedMoves != NULL);
+	
 	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*numReturnedMoves = 0;
-	return NULL;
+	return NOWHERE;
 }
 
 PlaceId *DvWhereCanIGo(DraculaView dv, int *numReturnedLocs)
 {
+	assert(dv != NULL);
+	assert(numReturnedLocs != NULL);
 	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*numReturnedLocs = 0;
-	return NULL;
+	return NOWHERE;
 }
 
 PlaceId *DvWhereCanIGoByType(DraculaView dv, bool road, bool boat,
