@@ -39,7 +39,7 @@ HunterView HvNew(char *pastPlays, Message messages[])
 		fprintf(stderr, "Couldn't allocate HunterView!\n");
 		exit(EXIT_FAILURE);
 	}
-	new->gv = GvNew(pastPlays, messages)
+	new->gv = GvNew(pastPlays, messages);
 	
 
 	return new;
@@ -64,7 +64,7 @@ Round HvGetRound(HunterView hv)
 
 Player HvGetPlayer(HunterView hv)
 {
-	assert (hv !- NULL);
+	assert (hv != NULL);
 	return GvGetPlayer(hv->gv);
 }
 
@@ -147,3 +147,4 @@ PlaceId *HvWhereCanTheyGoByType(HunterView hv, Player player,
 // Your own interface functions
 
 // TODO
+

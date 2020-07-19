@@ -39,7 +39,7 @@ HunterView HvNew(char *pastPlays, Message messages[])
 		fprintf(stderr, "Couldn't allocate HunterView!\n");
 		exit(EXIT_FAILURE);
 	}
-	new->gv = GvNew(pastPlays, messages)
+	new->gv = GvNew(pastPlays, messages);
 	
 
 	return new;
@@ -64,7 +64,7 @@ Round HvGetRound(HunterView hv)
 
 Player HvGetPlayer(HunterView hv)
 {
-	assert (hv !- NULL);
+	assert (hv != NULL);
 	return GvGetPlayer(hv->gv);
 }
 
@@ -117,7 +117,7 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 
 PlaceId *HvWhereCanIGo(HunterView hv, int *numReturnedLocs)
 {	
-    return HvWhereCanTheyGo(hv, HvGetPlayer(hv), numReturnedLocs)
+    return HvWhereCanTheyGo(hv, HvGetPlayer(hv), numReturnedLocs);
 }
 
 PlaceId *HvWhereCanIGoByType(HunterView hv, bool road, bool rail,
@@ -140,10 +140,11 @@ PlaceId *HvWhereCanTheyGoByType(HunterView hv, Player player,
                                 int *numReturnedLocs)
 {
     return GvGetReachableByType(hv->gv, player, HvGetRound(hv), 
-    HvGetPlayerLocation(hv, player), road, boat, numReturnedLocs);
+    HvGetPlayerLocation(hv, player), road, rail, boat, numReturnedLocs);
 }
 
 ////////////////////////////////////////////////////////////////////////
 // Your own interface functions
 
 // TODO
+
