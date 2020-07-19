@@ -74,25 +74,6 @@ static inline void set_default_gamestate(GameView gv) {
     }
 }
 
-// Convert the location into its unknown equivalent
-static inline PlaceId make_location_unknown(PlaceId location) {
-    assert(placeIsReal(location));
-
-    if (location == NOWHERE || location == UNKNOWN_PLACE || (location >= CITY_UNKNOWN && location <= TELEPORT)) {
-        return location;
-    }
-
-    PlaceType loc_type = placeIdToType(location);
-    if (loc_type == SEA) {
-        return SEA_UNKNOWN;
-    } else if (loc_type == LAND) {
-        return CITY_UNKNOWN;
-    } else {
-        fprintf(stderr, "Unhandled case supplied to make_location_unknown of %d. Aborting...\n", location);
-        exit(EXIT_FAILURE);
-    }
-}
-
 static Player player_id_from_move_string(char* move_string) {
     char player_character = move_string[0];
 

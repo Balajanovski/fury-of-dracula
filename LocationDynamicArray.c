@@ -75,7 +75,7 @@ PlaceId* get_raw_array_from_index_location_dynamic_array(LocationDynamicArray ld
     return lda->past_locations + i;
 }
 
-PlaceId* copy_to_raw_array_location_dynamic_array(LocationDynamicArray lda, int i, int* copy_size) {
+PlaceId* copy_to_raw_array_from_index_location_dynamic_array(LocationDynamicArray lda, int i, int* copy_size) {
     int lda_size = get_size_location_dynamic_array(lda);
     if (i >= lda_size || i < 0) {
         fprintf(stderr, "Out of bounds copy to raw array. Aborting...\n");
@@ -106,5 +106,20 @@ void extend_location_dynamic_array(LocationDynamicArray lhs, LocationDynamicArra
     int rhs_size = get_size_location_dynamic_array(rhs);
     for (int i = 0; i < rhs_size; ++i) {
         push_back_location_dynamic_array(lhs, ith_location_location_dynamic_array(rhs, i));
+    }
+}
+
+void extend_location_dynamic_array_raw(LocationDynamicArray lhs, PlaceId* rhs, int size) {
+    if (lhs == NULL) {
+        fprintf(stderr, "Attempted to extend NULL lhs dynamic array. Aborting...\n");
+        exit(1);
+    }
+
+    if (rhs == NULL) {
+        return;
+    }
+
+    for (int i = 0; i < size; ++i) {
+        push_back_location_dynamic_array(lhs, rhs[i]);
     }
 }
