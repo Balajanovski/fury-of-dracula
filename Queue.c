@@ -20,8 +20,8 @@ typedef struct QueueRep {
 	size_t size;
 } QueueRep;
 
-// create new empty Queue
-Queue newQueue (void)
+// create new Queue
+Queue NewQueue (void)
 {
 	QueueRep *new = malloc(sizeof (*new));
 	new->head = NULL;
@@ -40,7 +40,7 @@ static Node NewNode(PlaceId place) {
 }
 
 // free memory from Queue
-void dropQueue (Queue queue)
+void FreeQueue (Queue queue)
 {
 	assert (queue != NULL);
 	for (QueueNode *current = queue->head, *next; current != NULL; current = next) {
@@ -51,7 +51,7 @@ void dropQueue (Queue queue)
 }
 
 // add place to end of Queue
-void QueueJoin (Queue queue, PlaceId place)
+void AddtoQueue (Queue queue, PlaceId place)
 {
 	assert (queue != NULL);
 
@@ -67,7 +67,7 @@ void QueueJoin (Queue queue, PlaceId place)
 }
 
 // remove place from start of Queue
-PlaceId QueueLeave (Queue queue)
+PlaceId RemovefromQueue (Queue queue)
 {
 	assert (queue != NULL);
 	assert (queue->size != 0);

@@ -11,16 +11,16 @@ typedef struct QueueRep *Queue;
 typedef struct QueueNode *Node;
 
 //create a new queue
-Queue newQueue (void);
+Queue NewQueue (void);
 
 // free memory of queue
-void dropQueue (Queue);
+void FreeQueue (Queue);
 
 // add place to queue
-void QueueJoin (Queue, PlaceId);
+void AddtoQueue (Queue, PlaceId);
 
 // delete a place from queue
-PlaceId QueueLeave (Queue);
+PlaceId RemovefromQueue (Queue);
 
 // return number of places in Queue
 size_t QueueSize (Queue);

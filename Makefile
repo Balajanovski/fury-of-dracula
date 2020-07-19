@@ -15,13 +15,13 @@ BINS = testGameView testHunterView testDraculaView testMap
 
 all: $(BINS)
 
-testGameView: testGameView.o testUtils.o GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o
+testGameView: testGameView.o testUtils.o GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o Queue.o
 testGameView.o: testGameView.c GameView.h Map.h Places.h Game.h DraculaTrail.h
 
-testHunterView: testHunterView.o testUtils.o HunterView.o GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o
+testHunterView: testHunterView.o testUtils.o HunterView.o GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o Queue.o
 testHunterView.o: testHunterView.c HunterView.h GameView.h Map.h Places.h Game.h DraculaTrail.h
 
-testDraculaView: testDraculaView.o testUtils.o DraculaView.o GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o
+testDraculaView: testDraculaView.o testUtils.o DraculaView.o GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o Queue.o
 testDraculaView.o: testDraculaView.c DraculaView.h GameView.h Map.h Places.h Game.h DraculaTrail.h
 
 testMap: testMap.o Map.o Places.o
@@ -29,12 +29,13 @@ testMap.o: testMap.c Map.h Places.h
 
 Places.o: Places.c Places.h Game.h
 Map.o: Map.c Map.h Places.h Game.h
-GameView.o:	GameView.c GameView.h Game.h DraculaTrail.o DraculaTrail.h LocationDynamicArray.o LocationDynamicArray.h
+GameView.o:	GameView.c GameView.h Game.h DraculaTrail.o DraculaTrail.h LocationDynamicArray.o LocationDynamicArray.h Queue.o
 HunterView.o: HunterView.c HunterView.h Game.h GameView.o GameView.h
 DraculaView.o: DraculaView.c DraculaView.h Game.h GameView.o GameView.h
 testUtils.o: testUtils.c Places.h Game.h
 DraculaTrail.o: DraculaTrail.c DraculaTrail.h Places.h DraculaMove.h
 LocationDynamicArray.o: LocationDynamicArray.c LocationDynamicArray.h Places.h
+Queue.o: Queue.c Queue.h Places.h
 
 .PHONY: clean
 clean:
