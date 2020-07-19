@@ -29,12 +29,12 @@ testMap.o: testMap.c Map.h Places.h
 
 Places.o: Places.c Places.h Game.h
 Map.o: Map.c Map.h Places.h Game.h
-GameView.o:	GameView.c GameView.h Game.h DraculaTrail.o DraculaTrail.h LocationHistory.o LocationHistory.h
+GameView.o:	GameView.c GameView.h Game.h DraculaTrail.o DraculaTrail.h LocationHistory.o LocationDynamicArray.h
 HunterView.o: HunterView.c HunterView.h Game.h GameView.o GameView.h
 DraculaView.o: DraculaView.c DraculaView.h Game.h GameView.o GameView.h
 testUtils.o: testUtils.c Places.h Game.h
 DraculaTrail.o: DraculaTrail.c DraculaTrail.h Places.h DraculaMove.h
-LocationHistory.o: LocationHistory.c LocationHistory.h Places.h
+LocationHistory.o: LocationDynamicArray.c LocationDynamicArray.h Places.h
 
 .PHONY: clean
 clean:
