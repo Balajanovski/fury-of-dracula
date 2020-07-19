@@ -24,8 +24,7 @@
 // TODO: ADD YOUR OWN STRUCTS HERE
 
 struct hunterView {
-    GameView gv;
-
+	// TODO: ADD FIELDS HERE
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -39,16 +38,13 @@ HunterView HvNew(char *pastPlays, Message messages[])
 		fprintf(stderr, "Couldn't allocate HunterView!\n");
 		exit(EXIT_FAILURE);
 	}
-	new->gv = GvNew(pastPlays, messages);
-	
 
 	return new;
 }
 
 void HvFree(HunterView hv)
 {
-    assert(hv != NULL);
-    GvFree(hv->gv);
+	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
 	free(hv);
 }
 
@@ -57,41 +53,38 @@ void HvFree(HunterView hv)
 
 Round HvGetRound(HunterView hv)
 {
-	assert (hv != NULL);
-	return GvGetRound(hv->gv);
+	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+	return 0;
 }
-
 
 Player HvGetPlayer(HunterView hv)
 {
-	assert (hv != NULL);
-	return GvGetPlayer(hv->gv);
+	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+	return PLAYER_LORD_GODALMING;
 }
 
 int HvGetScore(HunterView hv)
 {
-	assert (hv != NULL);
-	return GvGetScore(hv->gv);
+	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+	return 0;
 }
 
 int HvGetHealth(HunterView hv, Player player)
 {
-
-	assert (hv != NULL);
-	return GvGetHealth(hv->gv, player);
+	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+	return 0;
 }
 
 PlaceId HvGetPlayerLocation(HunterView hv, Player player)
 {
-    assert (hv != NULL);
-    return GvGetPlayerLocation(hv->gv, player);
-
+	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+	return NOWHERE;
 }
 
 PlaceId HvGetVampireLocation(HunterView hv)
 {
-	assert (hv != NULL);
-	return GvGetVampireLocation(hv->gv);
+	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+	return NOWHERE;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -116,35 +109,38 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 // Making a Move
 
 PlaceId *HvWhereCanIGo(HunterView hv, int *numReturnedLocs)
-{	
-    return HvWhereCanTheyGo(hv, HvGetPlayer(hv), numReturnedLocs);
+{
+	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+	*numReturnedLocs = 0;
+	return NULL;
 }
 
 PlaceId *HvWhereCanIGoByType(HunterView hv, bool road, bool rail,
                              bool boat, int *numReturnedLocs)
 {
-    return HvWhereCanTheyGoByType(hv, HvGetPlayer(hv), road, rail, boat,
-                                  numReturnedLocs);
+	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+	*numReturnedLocs = 0;
+	return NULL;
 }
 
 PlaceId *HvWhereCanTheyGo(HunterView hv, Player player,
                           int *numReturnedLocs)
 {
-    return GvGetReachable(hv->gv, player, HvGetRound(hv),
-     HvGetPlayerLocation(hv, player), numReturnedLocs);
-
+	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+	*numReturnedLocs = 0;
+	return NULL;
 }
 
 PlaceId *HvWhereCanTheyGoByType(HunterView hv, Player player,
                                 bool road, bool rail, bool boat,
                                 int *numReturnedLocs)
 {
-    return GvGetReachableByType(hv->gv, player, HvGetRound(hv), 
-    HvGetPlayerLocation(hv, player), road, rail, boat, numReturnedLocs);
+	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+	*numReturnedLocs = 0;
+	return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // Your own interface functions
 
 // TODO
-
