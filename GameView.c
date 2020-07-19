@@ -20,15 +20,17 @@
 #include "Map.h"
 #include "Places.h"
 #include "DraculaTrail.h"
+#include "LocationHistory.h"
 
 struct gameView {
 	int player_healths[NUM_PLAYERS];
 	PlaceId player_locations[NUM_PLAYERS];
 	Map map;
-	int round_number;
-	Player current_player;
+	int move_number;
 	int score;
+
 	DraculaTrail dracula_trail;
+	LocationHistory player_location_histories[NUM_PLAYERS];
 
     PlaceId vampire_location;
 	PlaceId trap_locations[TRAIL_SIZE];
@@ -61,11 +63,11 @@ static inline void set_default_gamestate(GameView gv) {
         gv->player_locations[player] = NOWHERE;
     }
 
-    gv->round_number = 0;
-    gv->current_player = PLAYER_LORD_GODALMING;
+    gv->move_number = 0;
     gv->score = GAME_START_SCORE;
-    gv->vampire_location = NOWHERE;
 
+    // Encounter initialisation
+    gv->vampire_location = NOWHERE;
     for (int i = 0; i < TRAIL_SIZE; ++i) {
         gv->trap_locations[i] = NOWHERE;
     }
@@ -102,6 +104,8 @@ static Player player_id_from_move_string(char* move_string) {
             return PLAYER_VAN_HELSING;
         case 'M':
             return PLAYER_MINA_HARKER;
+        case 'D':
+            return PLAYER_DRACULA;
         default:
             fprintf(stderr, "Unhandled case supplied to player_id_from_move_string of %s. Aborting...\n", move_string);
             exit(EXIT_FAILURE);
@@ -124,6 +128,29 @@ static void add_trap(GameView gv, PlaceId location) {
             break;
         }
     }
+}
+
+static int num_traps(GameView gv) {
+    int num = 0;
+    for (int i = 0; i < TRAIL_SIZE; ++i) {
+        if (gv->trap_locations[i] != NOWHERE) {
+            ++num;
+        }
+    }
+
+    return num;
+}
+
+static PlaceId* get_traps(GameView gv) {
+    PlaceId* trap_locations = (PlaceId*) malloc(sizeof(PlaceId) * num_traps(gv));
+    int trap_insert_pos = 0;
+    for (int i = 0; i < TRAIL_SIZE; ++i) {
+        if (gv->trap_locations[i] != NOWHERE) {
+            trap_locations[trap_insert_pos++] = gv->trap_locations[i];
+        }
+    }
+
+    return trap_locations;
 }
 
 static void apply_hunter_encounters(GameView gv, Player curr_player, PlaceId location, const char* encounters_str) {
@@ -151,41 +178,111 @@ static void apply_hunter_encounters(GameView gv, Player curr_player, PlaceId loc
 
     if (gv->player_healths[curr_player] <= 0) {
         gv->player_healths[curr_player] = GAME_START_HUNTER_LIFE_POINTS;
-        gv->player_locations[curr_player] = HOSPITAL_PLACE;
+        gv->player_locations[curr_player] = ST_JOSEPH_AND_ST_MARY;
         gv->score -= SCORE_LOSS_HUNTER_HOSPITAL;
     }
 }
 
 
 static void apply_dracula_encounters_and_actions(GameView gv, PlaceId location, const char* encounters_and_actions_str) {
+    DraculaMove dracula_move;
+    dracula_move.location = location;
+
     for (int i = 0; i < CHARACTERS_IN_DRACULA_ENCOUNTER; ++i) {
         switch(encounters_and_actions_str[i]) {
             case 'T':
             {
+                dracula_move.placed_trap = true;
                 add_trap(gv, location);
             }
                 break;
             case 'V':
             {
+                dracula_move.placed_vampire = true;
                 gv->vampire_location = location;
             }
                 break;
         }
     }
 
+    DraculaMove popped_move;
+    bool move_popped = push_trail(gv->dracula_trail, dracula_move, &popped_move);
     for (int i = 0; i < CHARACTERS_IN_DRACULA_ACTION; ++i) {
         switch(encounters_and_actions_str[i]) {
             case 'M':
             {
+#ifndef NDEBUG
+                if (!move_popped || !popped_move.placed_trap) {
+                    fprintf(stderr, "Dracula trail has drifted from past moves in regards to trap removed from place: %s\n", placeIdToName(location));
+                }
+#endif
+
                 remove_trap(gv, location);
             }
                 break;
             case 'V':
             {
+#ifndef NDEBUG
+                if (!move_popped || !popped_move.placed_vampire) {
+                    fprintf(stderr, "Dracula trail has drifted from past moves in regards to vampire matured from place: %s\n", placeIdToName(location));
+                }
+#endif
+
                 gv->score -= SCORE_LOSS_VAMPIRE_MATURES;
             }
                 break;
         }
+    }
+
+    if (location == CASTLE_DRACULA) {
+        gv->player_healths[PLAYER_DRACULA] += LIFE_GAIN_CASTLE_DRACULA;
+    }
+}
+
+static PlaceId calculate_absolute_player_location(GameView gv, Player player, PlaceId location) {
+    if (placeIsReal(location) ||
+        location == CITY_UNKNOWN ||
+        location == SEA_UNKNOWN ||
+        location == NOWHERE ||
+        location == UNKNOWN_PLACE) {
+        return location;
+    }
+
+    if (location == TELEPORT) {
+        return CASTLE_DRACULA;
+    } else if (location == HIDE || location == DOUBLE_BACK_1) {
+        return calculate_absolute_player_location(
+                gv,
+                player,
+                ith_latest_location_location_history(gv->player_location_histories[player], 0)
+        );
+    } else if (location == DOUBLE_BACK_2) {
+        return calculate_absolute_player_location(
+                gv,
+                player,
+                ith_latest_location_location_history(gv->player_location_histories[player], 1)
+        );
+    } else if (location == DOUBLE_BACK_3) {
+        return calculate_absolute_player_location(
+                gv,
+                player,
+                ith_latest_location_location_history(gv->player_location_histories[player], 2)
+        );
+    } else if (location == DOUBLE_BACK_4) {
+        return calculate_absolute_player_location(
+                gv,
+                player,
+                ith_latest_location_location_history(gv->player_location_histories[player], 3)
+        );
+    } else if (location == DOUBLE_BACK_5) {
+        return calculate_absolute_player_location(
+                gv,
+                player,
+                ith_latest_location_location_history(gv->player_location_histories[player], 4)
+        );
+    } else {
+        fprintf(stderr, "Unhandled location case %s. Aborting...\n", placeIdToAbbrev(location));
+        exit(1);
     }
 }
 
@@ -196,20 +293,38 @@ static void simulate_past_plays(GameView gv, char* past_plays) {
 
     while (move != NULL) {
         Player move_player = player_id_from_move_string(move);
-        PlaceId new_loc = placeAbbrevToId(move+1);
+        PlaceId new_loc = calculate_absolute_player_location(gv, move_player, placeAbbrevToId(move+1));
+        push_location_history(gv->player_location_histories[move_player], new_loc);
 
         if (IS_DRACULA(move_player)) {
             apply_dracula_encounters_and_actions(gv, new_loc, move + 2);
         } else {
-            apply_hunter_encounters(gv, gv->current_player, new_loc, move+2);
+            apply_hunter_encounters(gv, move_player, new_loc, move + 2);
         }
 
         gv->player_locations[move_player] = new_loc;
-        ++gv->round_number;
-        gv->current_player = (move_player+1) % NUM_PLAYERS;
+        ++gv->move_number;
 
         move = strtok(NULL, delimiters);
     }
+}
+
+static PlaceId obfuscate_move(PlaceId move) {
+    if (placeIsLand(move)) {
+        return CITY_UNKNOWN;
+    } else {
+        return SEA_UNKNOWN;
+    }
+}
+
+static PlaceId* get_obfuscated_copy_of_moves(PlaceId* moves_list, int size) {
+    PlaceId* obfuscated_moves_list = (PlaceId*) malloc(sizeof(PlaceId) * size);
+
+    for (int i = 0; i < size; ++i) {
+        obfuscated_moves_list[i] = obfuscate_move(moves_list[i]);
+    }
+
+    return obfuscated_moves_list;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -227,6 +342,15 @@ GameView GvNew(char *past_plays, Message messages[]) {
 	if (new->dracula_trail == NULL) {
         fprintf(stderr, "Couldn't allocate dracula trail!\n");
         exit(EXIT_FAILURE);
+	}
+
+	// Create player location histories
+	for (int i = 0; i < NUM_PLAYERS; ++i) {
+	    new->player_location_histories[i] = new_location_history();
+	    if (new->player_location_histories[i] == NULL) {
+	        fprintf(stderr, "Couldn't allocate location history for player %d\n", i);
+	        exit(EXIT_FAILURE);
+	    }
 	}
 
     // Create the game map
@@ -248,8 +372,13 @@ void GvFree(GameView gv) {
     assert(gv->map != NULL);
     assert(gv->dracula_trail != NULL);
 
-    free(gv->dracula_trail);
-    free(gv->map);
+    for (int i = 0; i < NUM_PLAYERS; ++i) {
+        assert(gv->player_location_histories[i] != NULL);
+        free_location_history(gv->player_location_histories[i]);
+    }
+
+    free_trail(gv->dracula_trail);
+    MapFree(gv->map);
 	free(gv);
 }
 
@@ -258,12 +387,12 @@ void GvFree(GameView gv) {
 
 Round GvGetRound(GameView gv) {
     assert(gv != NULL);
-	return gv->round_number;
+	return gv->move_number / NUM_PLAYERS;
 }
 
 Player GvGetPlayer(GameView gv) {
     assert(gv != NULL);
-	return gv->current_player;
+	return gv->move_number % NUM_PLAYERS;
 }
 
 int GvGetScore(GameView gv) {
@@ -289,68 +418,81 @@ int GvGetHealth(GameView gv, Player player) {
 PlaceId GvGetPlayerLocation(GameView gv, Player player) {
 	assert(gv != NULL);
 	assert(player >= 0 && player < NUM_PLAYERS);
-	int actual_loc = gv->player_locations[player];
+	PlaceId loc = gv->player_locations[player];
 
-	if (actual_loc == NOWHERE || IS_HUNTER(player)) {
-	    return actual_loc;
-	} else if (IS_DRACULA(player)) {
-	    // TODO: Implement move reveal logic
-	    return make_location_unknown(actual_loc);
-	} else {
-	    fprintf(stderr, "Unknown case in GvGetPlayerLocation. Aborting....\n");
-	    exit(EXIT_FAILURE);
-	}
+	return calculate_absolute_player_location(gv, player, loc);
 }
 
 PlaceId GvGetVampireLocation(GameView gv) {
-    // TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-    return NOWHERE;
+    assert(gv->vampire_location != SEA_UNKNOWN);
+    return gv->vampire_location;
 }
 
-PlaceId *GvGetTrapLocations(GameView gv, int *numTraps)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*numTraps = 0;
-	return NULL;
+PlaceId *GvGetTrapLocations(GameView gv, int *numTraps) {
+	*numTraps = num_traps(gv);
+	return get_traps(gv);
 }
 
 ////////////////////////////////////////////////////////////////////////
 // Game History
 
 PlaceId *GvGetMoveHistory(GameView gv, Player player,
-                          int *numReturnedMoves, bool *canFree)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*numReturnedMoves = 0;
+                          int *numReturnedMoves, bool *canFree) {
+    LocationHistory desired_history = gv->player_location_histories[player];
+
+	*numReturnedMoves = get_size_location_history(desired_history);
 	*canFree = false;
-	return NULL;
+	return get_raw_array_from_index_location_history(desired_history, 0);
 }
 
 PlaceId *GvGetLastMoves(GameView gv, Player player, int numMoves,
-                        int *numReturnedMoves, bool *canFree)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*numReturnedMoves = 0;
+                        int *numReturnedMoves, bool *canFree) {
+    LocationHistory desired_history = gv->player_location_histories[player];
+    int history_size = get_size_location_history(desired_history);
+
+	*numReturnedMoves = history_size - numMoves;
 	*canFree = false;
-	return NULL;
+	return get_raw_array_from_index_location_history(desired_history, history_size - numMoves);
 }
 
 PlaceId *GvGetLocationHistory(GameView gv, Player player,
-                              int *numReturnedLocs, bool *canFree)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*numReturnedLocs = 0;
-	*canFree = false;
-	return NULL;
+                              int *numReturnedLocs, bool *canFree) {
+    bool can_free_move_history;
+    PlaceId* move_history = GvGetMoveHistory(gv, player, numReturnedLocs, &can_free_move_history);
+
+    if (IS_DRACULA(player)) {
+        PlaceId* location_history = get_obfuscated_copy_of_moves(move_history, *numReturnedLocs);
+
+        if (can_free_move_history) {
+            free(move_history);
+        }
+        *canFree = true;
+
+        return location_history;
+    } else {
+        *canFree = can_free_move_history;
+        return move_history;
+    }
 }
 
 PlaceId *GvGetLastLocations(GameView gv, Player player, int numLocs,
-                            int *numReturnedLocs, bool *canFree)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*numReturnedLocs = 0;
-	*canFree = false;
-	return 0;
+                            int *numReturnedLocs, bool *canFree) {
+    bool can_free_last_move_history;
+    PlaceId* last_move_history = GvGetLastMoves(gv, player, numLocs, numReturnedLocs, &can_free_last_move_history);
+
+    if (IS_DRACULA(player)) {
+        PlaceId* location_history = get_obfuscated_copy_of_moves(last_move_history, *numReturnedLocs);
+
+        if (can_free_last_move_history) {
+            free(last_move_history);
+        }
+        *canFree = true;
+
+        return location_history;
+    } else {
+        *canFree = can_free_last_move_history;
+        return last_move_history;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
