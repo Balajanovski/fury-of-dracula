@@ -53,7 +53,7 @@ void free_trail(DraculaTrail trail) {
     free(trail);
 }
 
-bool push(DraculaTrail trail, DraculaMove move, DraculaMove* popped_move) {
+bool push_trail(DraculaTrail trail, DraculaMove move, DraculaMove* popped_move) {
     bool move_popped = false;
     if (trail->num_elements == TRAIL_SIZE) {
         move_popped = true;
@@ -70,10 +70,10 @@ bool push(DraculaTrail trail, DraculaMove move, DraculaMove* popped_move) {
     return move_popped;
 }
 
-DraculaMove get_ith_latest_move(DraculaTrail trail, int i) {
+DraculaMove get_ith_latest_move_trail(DraculaTrail trail, int i) {
     assert(trail != NULL);
     assert(i < trail->num_elements);
 
-    return trail->queue_array[(trail->queue_start_index + i) % TRAIL_SIZE];
+    return trail->queue_array[(trail->queue_start_index + (TRAIL_SIZE - i - 1)) % TRAIL_SIZE];
 }
 
