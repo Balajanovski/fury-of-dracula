@@ -24,8 +24,8 @@
 #include "LocationDynamicArray.h"
 
 struct gameView {
+    bool player_death_states[NUM_PLAYERS];
 	int player_healths[NUM_PLAYERS];
-	PlaceId player_locations[NUM_PLAYERS];
 	Map map;
 	int move_number;
 	int score;
@@ -59,13 +59,13 @@ static inline void set_default_gamestate(GameView gv) {
         }
     }
 
-    // Set player locations to dummy value which represents an unchosen location
-    for (int player = 0; player < NUM_PLAYERS; ++player) {
-        gv->player_locations[player] = NOWHERE;
-    }
-
     gv->move_number = 0;
     gv->score = GAME_START_SCORE;
+
+    // Initialise the player death state array
+    for (int i = 0; i < NUM_PLAYERS; ++i) {
+        gv->player_death_states[i] = false;
+    }
 
     // Encounter initialisation
     gv->vampire_location = NOWHERE;
@@ -135,7 +135,18 @@ static PlaceId* get_traps(GameView gv) {
     return trap_locations;
 }
 
-static void apply_hunter_encounters(GameView gv, Player curr_player, PlaceId location, const char* encounters_str) {
+static PlaceId apply_hunter_encounters(GameView gv, Player curr_player, PlaceId location, const char* encounters_str) {
+    if (gv->player_death_states[curr_player]) {
+        gv->player_death_states[curr_player] = false;
+        gv->player_healths[curr_player] = GAME_START_HUNTER_LIFE_POINTS;
+    }
+
+    if (get_size_location_dynamic_array(gv->player_location_histories[curr_player]) > 0 &&
+    location == ith_latest_location_location_dynamic_array(gv->player_location_histories[curr_player], 0)) {
+        gv->player_healths[curr_player] += LIFE_GAIN_REST;
+        gv->player_healths[curr_player] = MIN(GvGetHealth(gv, curr_player), GAME_START_HUNTER_LIFE_POINTS);
+    }
+
     for (int i = 0; i < ENCOUNTERS_STRING_LEN && gv->player_healths[curr_player] > 0; ++i) {
         switch(encounters_str[i]) {
             case 'T':
@@ -159,14 +170,20 @@ static void apply_hunter_encounters(GameView gv, Player curr_player, PlaceId loc
     }
 
     if (gv->player_healths[curr_player] <= 0) {
-        gv->player_healths[curr_player] = GAME_START_HUNTER_LIFE_POINTS;
-        gv->player_locations[curr_player] = ST_JOSEPH_AND_ST_MARY;
+        gv->player_healths[curr_player] = MAX(gv->player_healths[curr_player], 0);
         gv->score -= SCORE_LOSS_HUNTER_HOSPITAL;
+        gv->player_death_states[curr_player] = true;
+
+        return ST_JOSEPH_AND_ST_MARY;
     }
+
+    return location;
 }
 
 
-static void apply_dracula_encounters_and_actions(GameView gv, PlaceId location, const char* encounters_and_actions_str) {
+static PlaceId apply_dracula_encounters_and_actions(GameView gv, PlaceId location, const char* encounters_and_actions_str) {
+    gv->score -= SCORE_LOSS_DRACULA_TURN;
+
     DraculaMove dracula_move;
     dracula_move.location = location;
 
@@ -187,38 +204,50 @@ static void apply_dracula_encounters_and_actions(GameView gv, PlaceId location, 
         }
     }
 
+    // Handle dracula's trail expiry actions
     DraculaMove popped_move;
     bool move_popped = push_trail(gv->dracula_trail, dracula_move, &popped_move);
+
+    bool trap_removed = false;
+    bool vampire_matured = false;
     for (int i = 0; i < CHARACTERS_IN_DRACULA_ACTION; ++i) {
         switch(encounters_and_actions_str[i]) {
             case 'M':
             {
-#ifndef NDEBUG
-                if (!move_popped || !popped_move.placed_trap) {
-                    fprintf(stderr, "Dracula trail has drifted from past moves in regards to trap removed from place: %s\n", placeIdToName(location));
-                }
-#endif
-
-                remove_trap(gv, location);
+                trap_removed = true;
             }
                 break;
             case 'V':
             {
-#ifndef NDEBUG
-                if (!move_popped || !popped_move.placed_vampire) {
-                    fprintf(stderr, "Dracula trail has drifted from past moves in regards to vampire matured from place: %s\n", placeIdToName(location));
-                }
-#endif
+                vampire_matured = true;
 
                 gv->score -= SCORE_LOSS_VAMPIRE_MATURES;
+                gv->vampire_location = NOWHERE;
             }
                 break;
         }
     }
+    trap_removed = trap_removed || (move_popped && popped_move.placed_trap);
+    vampire_matured = vampire_matured || (move_popped && popped_move.placed_vampire);
 
+    if (trap_removed) {
+        remove_trap(gv, location);
+    } if (vampire_matured) {
+        gv->vampire_location = NOWHERE;
+        gv->score -= SCORE_LOSS_VAMPIRE_MATURES;
+    }
+
+    // Handle Dracula's health
     if (location == CASTLE_DRACULA) {
         gv->player_healths[PLAYER_DRACULA] += LIFE_GAIN_CASTLE_DRACULA;
+    } if (placeIsSea(location)) {
+        gv->player_healths[PLAYER_DRACULA] -= LIFE_LOSS_SEA;
+    } if (gv->player_healths[PLAYER_DRACULA] < 0) {
+        gv->player_healths[PLAYER_DRACULA] = MAX(gv->player_healths[PLAYER_DRACULA], 0);
+        gv->player_death_states[PLAYER_DRACULA] = true;
     }
+
+    return location;
 }
 
 static PlaceId calculate_absolute_player_location(GameView gv, Player player, PlaceId location) {
@@ -268,27 +297,41 @@ static PlaceId calculate_absolute_player_location(GameView gv, Player player, Pl
     }
 }
 
+#define PLACE_ABBREV_CHARACTER_LEN 2
+
 // Simulate past plays
 static void simulate_past_plays(GameView gv, char* past_plays) {
+    // Copy past plays to malloced array in case it is a string literal
+    unsigned long past_plays_len = strlen(past_plays);
+    char* past_plays_copy = (char*) malloc(past_plays_len * sizeof(char));
+    strcpy(past_plays_copy, past_plays);
+
     const char* delimiters = " \n";
-    char* move = strtok(past_plays, delimiters);
+    char* move = strtok(past_plays_copy, delimiters);
 
     while (move != NULL) {
         Player move_player = player_id_from_move_string(move);
-        PlaceId new_loc = calculate_absolute_player_location(gv, move_player, placeAbbrevToId(move+1));
-        push_back_location_dynamic_array(gv->player_location_histories[move_player], new_loc);
 
+        char* place_abbrev = (char*) malloc(sizeof(char) * (PLACE_ABBREV_CHARACTER_LEN + 1));
+        strncpy(place_abbrev, move+1, PLACE_ABBREV_CHARACTER_LEN);
+        place_abbrev[PLACE_ABBREV_CHARACTER_LEN] = '\0';
+        PlaceId abbrev_loc = placeAbbrevToId(place_abbrev);
+        free(place_abbrev);
+
+        PlaceId new_loc = calculate_absolute_player_location(gv, move_player, abbrev_loc);
         if (IS_DRACULA(move_player)) {
-            apply_dracula_encounters_and_actions(gv, new_loc, move + 2);
+            new_loc = apply_dracula_encounters_and_actions(gv, new_loc, move + 1 + PLACE_ABBREV_CHARACTER_LEN);
         } else {
-            apply_hunter_encounters(gv, move_player, new_loc, move + 2);
+            new_loc = apply_hunter_encounters(gv, move_player, new_loc, move + 1 + PLACE_ABBREV_CHARACTER_LEN);
         }
 
-        gv->player_locations[move_player] = new_loc;
+        push_back_location_dynamic_array(gv->player_location_histories[move_player], new_loc);
         ++gv->move_number;
 
         move = strtok(NULL, delimiters);
     }
+
+    free(past_plays_copy);
 }
 
 static PlaceId obfuscate_move(PlaceId move) {
@@ -392,17 +435,21 @@ int GvGetScore(GameView gv) {
 }
 
 int GvGetHealth(GameView gv, Player player) {
-	assert(player >= 0 && player < NUM_PLAYERS);
+	assert(player >= 0 && (int) player < (int) NUM_PLAYERS);
 	assert(gv != NULL);
 	return gv->player_healths[player];
 }
 
 PlaceId GvGetPlayerLocation(GameView gv, Player player) {
 	assert(gv != NULL);
-	assert(player >= 0 && player < NUM_PLAYERS);
-	PlaceId loc = gv->player_locations[player];
+	assert(player >= 0 && (int) player < (int) NUM_PLAYERS);
 
-	return calculate_absolute_player_location(gv, player, loc);
+	int loc_history_size = get_size_location_dynamic_array(gv->player_location_histories[player]);
+	if (loc_history_size > 0) {
+	    return ith_latest_location_location_dynamic_array(gv->player_location_histories[player], 0);
+	} else {
+	    return NOWHERE;
+	}
 }
 
 PlaceId GvGetVampireLocation(GameView gv) {
