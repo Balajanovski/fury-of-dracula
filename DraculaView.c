@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "DraculaTrail.h"
 #include "DraculaView.h"
 #include "Game.h"
 #include "GameView.h"
@@ -45,6 +46,7 @@ DraculaView DvNew(char *pastPlays, Message messages[])
 
 void DvFree(DraculaView dv)
 {
+	assert(dv != NULL);
 	GvFree(dv->dracInfo);
 	free(dv);
 }
@@ -92,51 +94,38 @@ PlaceId *DvGetTrapLocations(DraculaView dv, int *numTraps)
 ////////////////////////////////////////////////////////////////////////
 // Making a Move
 
-
-/* */
 PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 {
-	assert(dv != NULL);
-	assert(numReturnedMoves != NULL);
-	
 	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
 	return NOWHERE;
 }
 
 PlaceId *DvWhereCanIGo(DraculaView dv, int *numReturnedLocs)
 {
-	assert(dv != NULL);
-	assert(numReturnedLocs != NULL);
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	return NOWHERE;
+	return DvWhereCanTheyGo(dv->dracInfo, PLAYER_DRACULA, numReturnedLocs);
 }
 
 PlaceId *DvWhereCanIGoByType(DraculaView dv, bool road, bool boat,
                              int *numReturnedLocs)
 {
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*numReturnedLocs = 0;
-	return NULL;
+	return GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv),
+	DvGetPlayer(dv), road, false, boat, numReturnedLocs);
 }
 
 PlaceId *DvWhereCanTheyGo(DraculaView dv, Player player,
                           int *numReturnedLocs)
 {
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*numReturnedLocs = 0;
-	return NULL;
+	return GvGetReachable(dv->dracInfo, player, DvGetRound(dv), 
+	DvGetPlayerLocation(dv, player), numReturnedLocs);
 }
 
 PlaceId *DvWhereCanTheyGoByType(DraculaView dv, Player player,
                                 bool road, bool rail, bool boat,
                                 int *numReturnedLocs)
 {
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*numReturnedLocs = 0;
-	return NULL;
+
+	return GvGetReachableByType(dv->dracInfo, player, DvGetRound(dv), 
+    DvGetPlayerLocation(dv, player), road, false, boat, numReturnedLocs);
 }
 
 ////////////////////////////////////////////////////////////////////////
-// Your own interface functions
-
-// TODO
