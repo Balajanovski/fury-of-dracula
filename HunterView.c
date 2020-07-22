@@ -106,7 +106,7 @@ PlaceId HvGetLastKnownDraculaLocation(HunterView hv, Round *round)
 	PlaceId *moves = GvGetMoveHistory(hv->gv, PLAYER_DRACULA, &numMoves, &canFree);
 	PlaceId known = NOWHERE;
 	for (int i = 0; i < numMoves; i++ ){
-		if(moves[i] != CITY_UNKNOWN){
+		if(placeIsReal(moves[i])){
 			known = moves[i];
 			*round = i;
 		}
