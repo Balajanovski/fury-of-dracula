@@ -326,7 +326,6 @@ static void simulate_past_plays(GameView gv, char* past_plays) {
             new_loc = apply_hunter_encounters(gv, move_player, new_loc, move + 1 + PLACE_ABBREV_CHARACTER_LEN);
         }
 
-
         push_back_location_dynamic_array(gv->player_move_histories[move_player], movement);
         push_back_location_dynamic_array(gv->player_location_histories[move_player], new_loc);
         ++gv->move_number;
@@ -351,17 +350,16 @@ static PlaceId* get_reachable_by_type(GameView gv, Player player, Round round,
     LocationDynamicArray boat_reachable_locations = new_location_dynamic_array();
     LocationDynamicArray rail_reachable_locations = new_location_dynamic_array();
 
+    unsigned int round_player_sum = player + round;
     struct connNode* iter = reachable_connections;
     while (iter != NULL) {
-        unsigned int round_player_sum = player + round;
-
         if (boat && iter->type == BOAT && (!IS_DRACULA(player) || iter->p != ST_JOSEPH_AND_ST_MARY)) {
             push_back_location_dynamic_array(boat_reachable_locations, iter->p);
         } if (road && iter->type == ROAD && (!IS_DRACULA(player) || iter->p != ST_JOSEPH_AND_ST_MARY)) {
             push_back_location_dynamic_array(road_reachable_locations, iter->p);
         } if (rail && iter->type == RAIL && !IS_DRACULA(player) && (round_player_sum % 4) > 0) {
             int num_returned_further_rail_links;
-            PlaceId* further_rail_link_locs = get_reachable_by_type(gv, player, round+1, iter->p, false, true, false, &num_returned_further_rail_links, visited);
+            PlaceId* further_rail_link_locs = get_reachable_by_type(gv, player, round-1, iter->p, false, true, false, &num_returned_further_rail_links, visited);
 
             extend_location_dynamic_array_raw(rail_reachable_locations, further_rail_link_locs, num_returned_further_rail_links);
             free(further_rail_link_locs);
@@ -614,6 +612,26 @@ PlaceId *GvGetReachableByType(GameView gv, Player player, Round round,
 }
 
 ////////////////////////////////////////////////////////////////////////
-// Your own interface functions
+// Custom interface functions
 
-// TODO
+PlaceId GvGetLatestRevealedDraculaPosition(GameView gv, Round* round) {
+    LocationDynamicArray dracula_loc_history = gv->player_location_histories[PLAYER_DRACULA];
+    for (int i = get_size_location_dynamic_array(dracula_loc_history) - 1; i >= 0; --i) {
+        PlaceId ith_latest_loc = ith_location_location_dynamic_array(dracula_loc_history, i);
+        if (placeIsReal(ith_latest_loc)) {
+            *round = i;
+            return ith_latest_loc;
+        }
+    }
+
+    return NOWHERE;
+}
+
+DraculaTrail GvGetDraculaTrail(GameView gv) {
+    return gv->dracula_trail;
+}
+
+void GvSetRound(GameView gv, Round round) {
+    Player current_player = GvGetPlayer(gv);
+    gv->move_number = (int) round * (int) NUM_PLAYERS + current_player;
+}
