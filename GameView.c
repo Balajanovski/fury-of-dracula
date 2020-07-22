@@ -260,41 +260,42 @@ static PlaceId calculate_absolute_player_location(GameView gv, Player player, Pl
         return location;
     }
 
-    if (location == TELEPORT) {
-        return CASTLE_DRACULA;
-    } else if (location == HIDE || location == DOUBLE_BACK_1) {
-        return calculate_absolute_player_location(
-                gv,
-                player,
-                ith_latest_location_location_dynamic_array(gv->player_location_histories[player], 0)
-        );
-    } else if (location == DOUBLE_BACK_2) {
-        return calculate_absolute_player_location(
-                gv,
-                player,
-                ith_latest_location_location_dynamic_array(gv->player_location_histories[player], 1)
-        );
-    } else if (location == DOUBLE_BACK_3) {
-        return calculate_absolute_player_location(
-                gv,
-                player,
-                ith_latest_location_location_dynamic_array(gv->player_location_histories[player], 2)
-        );
-    } else if (location == DOUBLE_BACK_4) {
-        return calculate_absolute_player_location(
-                gv,
-                player,
-                ith_latest_location_location_dynamic_array(gv->player_location_histories[player], 3)
-        );
-    } else if (location == DOUBLE_BACK_5) {
-        return calculate_absolute_player_location(
-                gv,
-                player,
-                ith_latest_location_location_dynamic_array(gv->player_location_histories[player], 4)
-        );
-    } else {
-        fprintf(stderr, "Unhandled location case %s. Aborting...\n", placeIdToAbbrev(location));
-        exit(1);
+    switch (location) {
+        case TELEPORT:
+            return CASTLE_DRACULA;
+        case HIDE: case DOUBLE_BACK_1:
+            return calculate_absolute_player_location(
+                    gv,
+                    player,
+                    ith_latest_location_location_dynamic_array(gv->player_location_histories[player], 0)
+            );
+        case DOUBLE_BACK_2:
+            return calculate_absolute_player_location(
+                    gv,
+                    player,
+                    ith_latest_location_location_dynamic_array(gv->player_location_histories[player], 1)
+            );
+        case DOUBLE_BACK_3:
+            return calculate_absolute_player_location(
+                    gv,
+                    player,
+                    ith_latest_location_location_dynamic_array(gv->player_location_histories[player], 2)
+            );
+        case DOUBLE_BACK_4:
+            return calculate_absolute_player_location(
+                    gv,
+                    player,
+                    ith_latest_location_location_dynamic_array(gv->player_location_histories[player], 3)
+            );
+        case DOUBLE_BACK_5:
+            return calculate_absolute_player_location(
+                    gv,
+                    player,
+                    ith_latest_location_location_dynamic_array(gv->player_location_histories[player], 4)
+            );
+        default:
+            fprintf(stderr, "Unhandled location case %s. Aborting...\n", placeIdToAbbrev(location));
+            exit(1);
     }
 }
 
