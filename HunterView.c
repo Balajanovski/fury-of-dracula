@@ -129,6 +129,7 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
                 // Get locations adjactent to the hunter
                 int numberOfAdjacentLocations;
                 PlaceId *canGo = HvWhereCanIGo(hv, &numberOfAdjacentLocations);
+                printf("%d\n", numberOfAdjacentLocations);
 
                 // Add to the queue all adjacent unvisited locations
                 for (int i = 0; i < numberOfAdjacentLocations; ++i) {

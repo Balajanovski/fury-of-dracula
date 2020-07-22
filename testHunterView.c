@@ -302,6 +302,10 @@ int main(void)
             int pathLength = -1;
             PlaceId *path = HvGetShortestPathTo(hv, PLAYER_LORD_GODALMING,
                                                 BARCELONA, &pathLength);
+            for (int i = 0; i < pathLength; ++i) {
+                printf("%s\n", placeIdToName(path[i]));
+            }
+
             assert(pathLength == 2);
             assert(path[0] == MADRID);
             assert(path[1] == BARCELONA);
