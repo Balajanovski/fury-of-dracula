@@ -32,6 +32,7 @@ struct gameView {
 
 	DraculaTrail dracula_trail;
 	LocationDynamicArray player_location_histories[NUM_PLAYERS];
+	LocationDynamicArray player_move_histories[NUM_PLAYERS];
 
     PlaceId vampire_location;
 	PlaceId trap_locations[TRAIL_SIZE];
@@ -312,19 +313,21 @@ static void simulate_past_plays(GameView gv, char* past_plays) {
     while (move != NULL) {
         Player move_player = player_id_from_move_string(move);
 
-        char* place_abbrev = (char*) malloc(sizeof(char) * (PLACE_ABBREV_CHARACTER_LEN + 1));
-        strncpy(place_abbrev, move+1, PLACE_ABBREV_CHARACTER_LEN);
-        place_abbrev[PLACE_ABBREV_CHARACTER_LEN] = '\0';
-        PlaceId abbrev_loc = placeAbbrevToId(place_abbrev);
-        free(place_abbrev);
+        char* move_abbrev = (char*) malloc(sizeof(char) * (PLACE_ABBREV_CHARACTER_LEN + 1));
+        strncpy(move_abbrev, move + 1, PLACE_ABBREV_CHARACTER_LEN);
+        move_abbrev[PLACE_ABBREV_CHARACTER_LEN] = '\0';
+        PlaceId movement = placeAbbrevToId(move_abbrev);
+        free(move_abbrev);
 
-        PlaceId new_loc = calculate_absolute_player_location(gv, move_player, abbrev_loc);
+        PlaceId new_loc = calculate_absolute_player_location(gv, move_player, movement);
         if (IS_DRACULA(move_player)) {
             new_loc = apply_dracula_encounters_and_actions(gv, new_loc, move + 1 + PLACE_ABBREV_CHARACTER_LEN);
         } else {
             new_loc = apply_hunter_encounters(gv, move_player, new_loc, move + 1 + PLACE_ABBREV_CHARACTER_LEN);
         }
 
+
+        push_back_location_dynamic_array(gv->player_move_histories[move_player], movement);
         push_back_location_dynamic_array(gv->player_location_histories[move_player], new_loc);
         ++gv->move_number;
 
@@ -334,7 +337,62 @@ static void simulate_past_plays(GameView gv, char* past_plays) {
     free(past_plays_copy);
 }
 
+static PlaceId* get_reachable_by_type(GameView gv, Player player, Round round,
+                                      PlaceId from, bool road, bool rail, bool boat, int* num_returned_locs,
+                                      bool* visited) {
+    if (visited[from]) {
+        *num_returned_locs = 0;
+        return NULL;
+    }
+    visited[from] = true;
+
+    ConnList reachable_connections = MapGetConnections(gv->map, from);
+    LocationDynamicArray road_reachable_locations = new_location_dynamic_array();
+    LocationDynamicArray boat_reachable_locations = new_location_dynamic_array();
+    LocationDynamicArray rail_reachable_locations = new_location_dynamic_array();
+
+    struct connNode* iter = reachable_connections;
+    while (iter != NULL) {
+        unsigned int round_player_sum = player + round;
+
+        if (boat && iter->type == BOAT && (!IS_DRACULA(player) || iter->p != ST_JOSEPH_AND_ST_MARY)) {
+            push_back_location_dynamic_array(boat_reachable_locations, iter->p);
+        } if (road && iter->type == ROAD && (!IS_DRACULA(player) || iter->p != ST_JOSEPH_AND_ST_MARY)) {
+            push_back_location_dynamic_array(road_reachable_locations, iter->p);
+        } if (rail && iter->type == RAIL && !IS_DRACULA(player) && (round_player_sum % 4) > 0) {
+            int num_returned_further_rail_links;
+            PlaceId* further_rail_link_locs = get_reachable_by_type(gv, player, round+1, iter->p, false, true, false, &num_returned_further_rail_links, visited);
+
+            extend_location_dynamic_array_raw(rail_reachable_locations, further_rail_link_locs, num_returned_further_rail_links);
+            free(further_rail_link_locs);
+        }
+
+        iter = iter->next;
+    }
+
+    // Put all of the locations into rail_reachable_locations
+    extend_location_dynamic_array(rail_reachable_locations, road_reachable_locations);
+    extend_location_dynamic_array(rail_reachable_locations, boat_reachable_locations);
+    free_location_dynamic_array(road_reachable_locations);
+    free_location_dynamic_array(boat_reachable_locations);
+
+    // The location is of course reachable from itself
+    push_back_location_dynamic_array(rail_reachable_locations, from);
+
+    int locations_size;
+    PlaceId* raw_locations = copy_to_raw_array_from_index_location_dynamic_array(rail_reachable_locations, 0, &locations_size);
+    free_location_dynamic_array(rail_reachable_locations);
+
+    *num_returned_locs = locations_size;
+    return raw_locations;
+}
+
+/*
 static PlaceId obfuscate_move(PlaceId move) {
+    if (!placeIsReal(move)) {
+        return move;
+    }
+
     if (placeIsLand(move)) {
         return CITY_UNKNOWN;
     } else {
@@ -351,6 +409,7 @@ static PlaceId* get_obfuscated_copy_of_moves(PlaceId* moves_list, int size) {
 
     return obfuscated_moves_list;
 }
+*/
 
 ////////////////////////////////////////////////////////////////////////
 // Constructor/Destructor
@@ -378,6 +437,15 @@ GameView GvNew(char *past_plays, Message messages[]) {
 	    }
 	}
 
+	// Create player move histories
+	for (int i = 0; i < NUM_PLAYERS; ++i) {
+	    new->player_move_histories[i] = new_location_dynamic_array();
+	    if (new->player_location_histories[i] == NULL) {
+            fprintf(stderr, "Couldn't allocate move history for player %d\n", i);
+            exit(EXIT_FAILURE);
+	    }
+	}
+
     // Create the game map
     new->map = MapNew();
     if (new->map == NULL) {
@@ -397,9 +465,16 @@ void GvFree(GameView gv) {
     assert(gv->map != NULL);
     assert(gv->dracula_trail != NULL);
 
+    // Free player location histories
     for (int i = 0; i < NUM_PLAYERS; ++i) {
         assert(gv->player_location_histories[i] != NULL);
         free_location_dynamic_array(gv->player_location_histories[i]);
+    }
+
+    // Free player move histories
+    for (int i = 0; i < NUM_PLAYERS; ++i) {
+        assert(gv->player_location_histories[i] != NULL);
+        free_location_dynamic_array(gv->player_move_histories[i]);
     }
 
     free_trail(gv->dracula_trail);
@@ -467,68 +542,53 @@ PlaceId *GvGetTrapLocations(GameView gv, int *numTraps) {
 
 PlaceId *GvGetMoveHistory(GameView gv, Player player,
                           int *numReturnedMoves, bool *canFree) {
-    LocationDynamicArray desired_history = gv->player_location_histories[player];
-
-	*canFree = false;
-
-	int raw_size;
-	PlaceId* raw_arr = get_raw_array_from_index_location_dynamic_array(desired_history, 0, &raw_size);
-	*numReturnedMoves = raw_size;
-	return raw_arr;
+    int history_size = get_size_location_dynamic_array(gv->player_move_histories[player]);
+    return GvGetLastMoves(gv, player, history_size, numReturnedMoves, canFree);
 }
 
 PlaceId *GvGetLastMoves(GameView gv, Player player, int numMoves,
                         int *numReturnedMoves, bool *canFree) {
-    LocationDynamicArray desired_history = gv->player_location_histories[player];
+    LocationDynamicArray desired_history = gv->player_move_histories[player];
     int history_size = get_size_location_dynamic_array(desired_history);
 
     int returned_moves = history_size - MAX(history_size - numMoves, 0);
+    if (returned_moves <= 0) {
+        *numReturnedMoves = returned_moves;
+        *canFree = false;
+        return NULL;
+    }
 
-	*numReturnedMoves = returned_moves;
-	*canFree = false;
-
-	int raw_size;
-	return (returned_moves > 0) ? get_raw_array_from_index_location_dynamic_array(desired_history, history_size - returned_moves, &raw_size) : NULL;
+    *canFree = false;
+    int raw_size;
+    PlaceId* raw_arr = get_raw_array_from_index_location_dynamic_array(desired_history, history_size - returned_moves, &raw_size);
+    *numReturnedMoves = raw_size;
+    return raw_arr;
 }
 
 PlaceId *GvGetLocationHistory(GameView gv, Player player,
                               int *numReturnedLocs, bool *canFree) {
-    bool can_free_move_history;
-    PlaceId* move_history = GvGetMoveHistory(gv, player, numReturnedLocs, &can_free_move_history);
-
-    if (IS_DRACULA(player)) {
-        PlaceId* location_history = get_obfuscated_copy_of_moves(move_history, *numReturnedLocs);
-
-        if (can_free_move_history) {
-            free(move_history);
-        }
-        *canFree = true;
-
-        return location_history;
-    } else {
-        *canFree = can_free_move_history;
-        return move_history;
-    }
+    int history_size = get_size_location_dynamic_array(gv->player_location_histories[player]);
+    return GvGetLastLocations(gv, player, history_size, numReturnedLocs, canFree);
 }
 
 PlaceId *GvGetLastLocations(GameView gv, Player player, int numLocs,
                             int *numReturnedLocs, bool *canFree) {
-    bool can_free_last_move_history;
-    PlaceId* last_move_history = GvGetLastMoves(gv, player, numLocs, numReturnedLocs, &can_free_last_move_history);
+    LocationDynamicArray desired_history = gv->player_location_histories[player];
+    int history_size = get_size_location_dynamic_array(desired_history);
 
-    if (IS_DRACULA(player)) {
-        PlaceId* location_history = get_obfuscated_copy_of_moves(last_move_history, *numReturnedLocs);
-
-        if (can_free_last_move_history) {
-            free(last_move_history);
-        }
-        *canFree = true;
-
-        return location_history;
-    } else {
-        *canFree = can_free_last_move_history;
-        return last_move_history;
+    int returned_locations = history_size - MAX(history_size - numLocs, 0);
+    if (returned_locations <= 0) {
+        *numReturnedLocs = returned_locations;
+        *canFree = false;
+        return NULL;
     }
+
+    int raw_size;
+    PlaceId* raw_loc_array = get_raw_array_from_index_location_dynamic_array(desired_history, history_size - returned_locations, &raw_size);
+    *numReturnedLocs = raw_size;
+
+    *canFree = false;
+    return raw_loc_array;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -542,44 +602,15 @@ PlaceId *GvGetReachable(GameView gv, Player player, Round round,
 PlaceId *GvGetReachableByType(GameView gv, Player player, Round round,
                               PlaceId from, bool road, bool rail,
                               bool boat, int *numReturnedLocs) {
-    ConnList reachable_connections = MapGetConnections(gv->map, from);
-    LocationDynamicArray road_reachable_locations = new_location_dynamic_array();
-    LocationDynamicArray boat_reachable_locations = new_location_dynamic_array();
-    LocationDynamicArray rail_reachable_locations = new_location_dynamic_array();
+    size_t visited_size = sizeof(bool) * NUM_REAL_PLACES;
+    bool* visited = (bool*) malloc(visited_size);
+    memset(visited, false, visited_size);
 
-    struct connNode* iter = reachable_connections;
-    while (iter != NULL) {
-        unsigned int round_player_sum = player + round;
+    PlaceId* reachable = get_reachable_by_type(gv, player, round, from, road, rail, boat, numReturnedLocs, visited);
 
-        if (boat && iter->type == BOAT && (!IS_DRACULA(player) || iter->p != ST_JOSEPH_AND_ST_MARY)) {
-            push_back_location_dynamic_array(boat_reachable_locations, iter->p);
-        } if (road && iter->type == ROAD && (!IS_DRACULA(player) || iter->p != ST_JOSEPH_AND_ST_MARY)) {
-            push_back_location_dynamic_array(road_reachable_locations, iter->p);
-        } if (rail && iter->type == RAIL && !IS_DRACULA(player) && (round_player_sum % 4) > 0) {
-            int num_returned_further_rail_links;
-            PlaceId* further_rail_link_locs = GvGetReachableByType(gv, player, round+1, iter->p, false, true, false, &num_returned_further_rail_links);
+    free(visited);
 
-            extend_location_dynamic_array_raw(rail_reachable_locations, further_rail_link_locs, num_returned_further_rail_links);
-            free(further_rail_link_locs);
-
-            push_back_location_dynamic_array(rail_reachable_locations, iter->p);
-        }
-
-        iter = iter->next;
-    }
-
-    // Put all of the locations into rail_reachable_locations
-    extend_location_dynamic_array(rail_reachable_locations, road_reachable_locations);
-    extend_location_dynamic_array(rail_reachable_locations, boat_reachable_locations);
-    free_location_dynamic_array(road_reachable_locations);
-    free_location_dynamic_array(boat_reachable_locations);
-
-    int locations_size;
-    PlaceId* raw_locations = copy_to_raw_array_from_index_location_dynamic_array(rail_reachable_locations, 0, &locations_size);
-    free_location_dynamic_array(rail_reachable_locations);
-
-	*numReturnedLocs = locations_size;
-	return raw_locations;
+    return reachable;
 }
 
 ////////////////////////////////////////////////////////////////////////
