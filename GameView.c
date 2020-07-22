@@ -546,10 +546,14 @@ PlaceId *GvGetReachableByType(GameView gv, Player player, Round round,
     LocationDynamicArray road_reachable_locations = new_location_dynamic_array();
     LocationDynamicArray boat_reachable_locations = new_location_dynamic_array();
     LocationDynamicArray rail_reachable_locations = new_location_dynamic_array();
+    LocationDynamicArray same_place = new_location_dynamic_array();
+    
+    push_back_location_dynamic_array(same_place, from);
 
     struct connNode* iter = reachable_connections;
     while (iter != NULL) {
         unsigned int round_player_sum = player + round;
+        
 
         if (boat && iter->type == BOAT && (!IS_DRACULA(player) || iter->p != ST_JOSEPH_AND_ST_MARY)) {
             push_back_location_dynamic_array(boat_reachable_locations, iter->p);
@@ -571,8 +575,10 @@ PlaceId *GvGetReachableByType(GameView gv, Player player, Round round,
     // Put all of the locations into rail_reachable_locations
     extend_location_dynamic_array(rail_reachable_locations, road_reachable_locations);
     extend_location_dynamic_array(rail_reachable_locations, boat_reachable_locations);
+    extend_location_dynamic_array(rail_reachable_locations, same_place);
     free_location_dynamic_array(road_reachable_locations);
     free_location_dynamic_array(boat_reachable_locations);
+    free_location_dynamic_array(same_place);
 
     int locations_size;
     PlaceId* raw_locations = copy_to_raw_array_from_index_location_dynamic_array(rail_reachable_locations, 0, &locations_size);
