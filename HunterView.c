@@ -133,10 +133,10 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 	AddtoQueue(Path, source);
 	
 	int found = 0;
-	
+	Round round_number = 48;//GvGetRound(hv->gv);
 	while (found == 0 && QueueSize(Path) != 0) {
 	    PlaceId v = RemovefromQueue(Path);
-	    printf("%d\n", v);
+	    //printf("%d\n", v);
 	    //if found destination end loop
 	    if (v == dest) {
 	        found = 1;
@@ -144,11 +144,13 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 	    } else {
 	        //Get array of places hunter can go
 	        int numberCanGo;
-	        PlaceId *canGo = //HvWhereCanIGo(hv, &numberCanGo);
-	        GvGetReachable(hv->gv, GvGetPlayer(hv->gv), GvGetRound(hv->gv), GvGetPlayerLocation(hv->gv, GvGetPlayer(hv->gv)), &numberCanGo);
-	        //loop through array of cango and add to queue if not visited
+	        
+	        PlaceId *canGo = GvGetReachable(hv->gv, hunter, round_number,
+                       v, &numberCanGo);
+            round_number++;
 	        for (int i = 0; i < numberCanGo; i++) {
 	            PlaceId w = canGo[i];
+	            printf("made\n");
 	            if (visited[w] == -1) {
 	                visited[w] = v;
 	                AddtoQueue(Path, w);
@@ -160,6 +162,7 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 	//if no path return 0
 	if (found == 0) {
 	    *pathLength = 0;
+	    
 	    return NULL;	
 	}
 	
@@ -203,7 +206,7 @@ PlaceId *HvWhereCanIGo(HunterView hv, int *numReturnedLocs)
         return NULL;
     } else {
         return HvWhereCanTheyGo(hv, HvGetPlayer(hv), numReturnedLocs);
-    }
+    }   
 }
 
 PlaceId *HvWhereCanIGoByType(HunterView hv, bool road, bool rail,
