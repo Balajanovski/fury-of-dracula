@@ -340,6 +340,17 @@ static void simulate_past_plays(GameView gv, char* past_plays) {
 static void get_reachable_by_type(GameView gv, Player player, Round round,
                                       PlaceId from, bool road, bool rail, bool boat,
                                       bool* visited) {
+    if (from == NOWHERE) {
+        for (int i = 0; i < NUM_REAL_PLACES; ++i) {
+            visited[i] = true;
+        }
+        if (IS_DRACULA(player)) {
+            visited[ST_JOSEPH_AND_ST_MARY] = false;
+        }
+
+        return;
+    }
+
     if (visited[from] || (from == ST_JOSEPH_AND_ST_MARY && IS_DRACULA(player))) {
         return;
     }
@@ -353,9 +364,9 @@ static void get_reachable_by_type(GameView gv, Player player, Round round,
     while (iter != NULL) {
         if (rail && iter->type == RAIL && !IS_DRACULA(player) && (round_player_sum % 4) > 0) {
             get_reachable_by_type(gv, player, round-1, iter->p, false, true, false, visited);
-        } if (boat && iter->type == BOAT && (!IS_DRACULA(player) || iter->p != ST_JOSEPH_AND_ST_MARY)) {
-            get_reachable_by_type(gv, player, round-1, iter->p, false, false, false, visited);
         } if (road && iter->type == ROAD && (!IS_DRACULA(player) || iter->p != ST_JOSEPH_AND_ST_MARY)) {
+            get_reachable_by_type(gv, player, round-1, iter->p, false, false, false, visited);
+        } if (boat && iter->type == BOAT && (!IS_DRACULA(player) || iter->p != ST_JOSEPH_AND_ST_MARY)) {
             get_reachable_by_type(gv, player, round-1, iter->p, false, false, false, visited);
         }
 
