@@ -156,12 +156,27 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 
 PlaceId *DvWhereCanIGo(DraculaView dv, int *numReturnedLocs)
 {
+	// Dracula, at the start, has no move history so return NULL.
+	int currHist;
+	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, false);
+	if (currHist == 0) { 
+		*numReturnedLocs = 0;
+		return NULL;
+	}
+	
 	return DvWhereCanTheyGo(dv, PLAYER_DRACULA, numReturnedLocs);
 }
 
 PlaceId *DvWhereCanIGoByType(DraculaView dv, bool road, bool boat,
                              int *numReturnedLocs)
 {
+	// Dracula, at the start, has no move history so return NULL.
+	int currHist;
+	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, false);
+	if (currHist == 0) { 
+		*numReturnedLocs = 0;
+		return NULL;
+	}
 	return GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv),
 	currPlace(dv), road, false, boat, numReturnedLocs);
 }
@@ -169,6 +184,13 @@ PlaceId *DvWhereCanIGoByType(DraculaView dv, bool road, bool boat,
 PlaceId *DvWhereCanTheyGo(DraculaView dv, Player player,
                           int *numReturnedLocs)
 {
+	// Dracula, at the start, has no move history so return NULL.
+	int currHist;
+	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, false);
+	if (currHist == 0) { 
+		*numReturnedLocs = 0;
+		return NULL;
+	}
 	return GvGetReachable(dv->dracInfo, player, DvGetRound(dv), 
 	DvGetPlayerLocation(dv, player), numReturnedLocs);
 }
@@ -177,6 +199,13 @@ PlaceId *DvWhereCanTheyGoByType(DraculaView dv, Player player,
                                 bool road, bool rail, bool boat,
                                 int *numReturnedLocs)
 {
+	// Dracula, at the start, has no move history so return NULL.
+	int currHist;
+	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, false);
+	if (currHist == 0) { 
+		*numReturnedLocs = 0;
+		return NULL;
+	}
 
 	return GvGetReachableByType(dv->dracInfo, player, DvGetRound(dv), 
     DvGetPlayerLocation(dv, player), road, false, boat, numReturnedLocs);
