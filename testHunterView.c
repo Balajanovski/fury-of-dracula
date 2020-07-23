@@ -392,7 +392,6 @@ int main(void)
         printf("Test passed!\n");
     }
 
-    // POSSIBLY BROKEN TEST
     {///////////////////////////////////////////////////////////////////
 
         printf("Checking Paris rail connections "
