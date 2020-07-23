@@ -162,7 +162,7 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 	*pathLength = i;
 	
 	PlaceId *_path = malloc (sizeof (int) * NUM_REAL_PLACES);
-	//flip the path so we go from source to destination
+	// Flip the path so we go from source to destination
 	int j = i-1;
 	int p = 0;
 	while (j >= 0) {
@@ -191,18 +191,15 @@ PlaceId *HvWhereCanIGoByType(HunterView hv, bool road, bool rail,
 
 PlaceId *HvWhereCanTheyGo(HunterView hv, Player player,
                           int *numReturnedLocs) {
-    if (GvGetRound(hv->gv) == 0) {
-        *numReturnedLocs = 0;
-        return NULL;
-    } else {
-        return GvGetReachable(hv->gv, player, HvGetRound(hv), HvGetPlayerLocation(hv, player), numReturnedLocs);
-    }
+    int adjusted_round = HvGetRound(hv) + (player < HvGetPlayer(hv));
+    return GvGetReachable(hv->gv, player, adjusted_round, HvGetPlayerLocation(hv, player), numReturnedLocs);
 }
 
 PlaceId *HvWhereCanTheyGoByType(HunterView hv, Player player,
                                 bool road, bool rail, bool boat,
                                 int *numReturnedLocs) {
-    return GvGetReachableByType(hv->gv, player, HvGetRound(hv), HvGetPlayerLocation(hv, player), road, rail, boat, numReturnedLocs);
+    int adjusted_round = HvGetRound(hv) + (player < HvGetPlayer(hv));
+    return GvGetReachableByType(hv->gv, player, adjusted_round, HvGetPlayerLocation(hv, player), road, rail, boat, numReturnedLocs);
 }
 
 ////////////////////////////////////////////////////////////////////////
