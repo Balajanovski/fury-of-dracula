@@ -262,6 +262,4 @@ PlaceId GvGetLatestRevealedDraculaPosition(GameView gv, Round* round);
 
 DraculaTrail GvGetDraculaTrail(GameView gv);
 
-void GvSetRound(GameView gv, Round round);
-
 #endif // !defined (FOD__GAME_VIEW_H_)

@@ -128,27 +128,22 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
             } else {
                 // Get locations adjactent to the hunter
                 int numberOfAdjacentLocations;
-                PlaceId *canGo = HvWhereCanIGo(hv, &numberOfAdjacentLocations);
-                printf("%d\n", numberOfAdjacentLocations);
+                PlaceId *canGo = GvGetReachable(hv->gv, hunter, current_round_number, currentLocation, &numberOfAdjacentLocations);
 
                 // Add to the queue all adjacent unvisited locations
                 for (int i = 0; i < numberOfAdjacentLocations; ++i) {
                     PlaceId adjacentLocation = canGo[i];
-                    printf("%s ", placeIdToName(adjacentLocation));
 
                     if (visited[adjacentLocation] == BFS_UNVISITED_VALUE) {
                         visited[adjacentLocation] = currentLocation;
                         AddtoQueue(Path, adjacentLocation);
                     }
                 }
-                putchar('\n');
             }
 	    }
 
 	    ++current_round_number;
-	    GvSetRound(hv->gv, current_round_number);
 	}
-	GvSetRound(hv->gv, old_round_number);
 
 	if (!found) {
 	    *pathLength = 0;
@@ -164,13 +159,11 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 	    i++;
 	    loop = visited[loop];
 	}
-	
-	reverse_path[i] = loop;
-	*pathLength = i + 1;
+	*pathLength = i;
 	
 	PlaceId *_path = malloc (sizeof (int) * NUM_REAL_PLACES);
 	//flip the path so we go from source to destination
-	int j = i;
+	int j = i-1;
 	int p = 0;
 	while (j >= 0) {
 	    _path[p] = reverse_path[j];
@@ -187,35 +180,19 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 // Making a Move
 
 PlaceId *HvWhereCanIGo(HunterView hv, int *numReturnedLocs) {
-    //if player hasn't gone yet should return NULL
-    //so have to check if player has a move history
-    
-    if (GvGetRound(hv->gv) == 0) {
-        numReturnedLocs = 0;
-        return NULL;
-    } else {
-        return HvWhereCanTheyGo(hv, HvGetPlayer(hv), numReturnedLocs);
-    }
+    return HvWhereCanTheyGo(hv, HvGetPlayer(hv), numReturnedLocs);
 }
 
 PlaceId *HvWhereCanIGoByType(HunterView hv, bool road, bool rail,
                              bool boat, int *numReturnedLocs) {
-    //if player hasn't gone yet should return NULL
-    //so have to check if player has a move history
-    
-    if (GvGetRound(hv->gv) == 0) {
-        numReturnedLocs = 0;
-        return NULL;
-    } else {
-        return HvWhereCanTheyGoByType(hv, HvGetPlayer(hv), road, rail, boat,
-                                      numReturnedLocs);
-    }
+    return HvWhereCanTheyGoByType(hv, HvGetPlayer(hv), road, rail, boat,
+                                  numReturnedLocs);
 }
 
 PlaceId *HvWhereCanTheyGo(HunterView hv, Player player,
                           int *numReturnedLocs) {
     if (GvGetRound(hv->gv) == 0) {
-        numReturnedLocs = 0;
+        *numReturnedLocs = 0;
         return NULL;
     } else {
         return GvGetReachable(hv->gv, player, HvGetRound(hv), HvGetPlayerLocation(hv, player), numReturnedLocs);

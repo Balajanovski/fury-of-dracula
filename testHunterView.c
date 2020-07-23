@@ -302,9 +302,6 @@ int main(void)
             int pathLength = -1;
             PlaceId *path = HvGetShortestPathTo(hv, PLAYER_LORD_GODALMING,
                                                 BARCELONA, &pathLength);
-            for (int i = 0; i < pathLength; ++i) {
-                printf("%s\n", placeIdToName(path[i]));
-            }
 
             assert(pathLength == 2);
             assert(path[0] == MADRID);
@@ -395,6 +392,7 @@ int main(void)
         printf("Test passed!\n");
     }
 
+    // POSSIBLY BROKEN TEST
     {///////////////////////////////////////////////////////////////////
 
         printf("Checking Paris rail connections "
