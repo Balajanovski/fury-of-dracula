@@ -155,6 +155,12 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 		enPt++;
 	}
 
+	if (enPt == 0) {
+		free(validMoves);
+		*numReturnedMoves = 0;
+		return NULL;
+	}
+
 	*numReturnedMoves = enPt;
 	return validMoves;
 }
@@ -163,13 +169,51 @@ PlaceId *DvWhereCanIGo(DraculaView dv, int *numReturnedLocs)
 {
 	// Dracula, at the start, has no move history so return NULL.
 	int currHist = 0; bool noFree = false;
-	GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, &noFree);
+	int currLoc = currPlace(dv);
+	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, &noFree);
+
 	if (currHist == 0) { 
 		*numReturnedLocs = 0;
 		return NULL;
 	}
+
+	int numMoves = 0;
+	PlaceId *adjLocs = GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
+						currLoc, true, false, true, &numMoves);
 	
-	return DvWhereCanTheyGo(dv, PLAYER_DRACULA, numReturnedLocs);
+	int veiled = NO, receded = NO;
+	for (int prev = 0, rP = currHist - 1; rP >= 0 && prev < 5; prev++, rP--) {
+		veiled += (moveHist[rP] == HIDE);
+		receded += usedDB(moveHist[rP]);
+	}
+
+	int enPt = 0;
+	PlaceId *validMoves = malloc(numMoves * sizeof(PlaceId));
+	
+	for (int i = 0; i < numMoves; i++) {
+		int prev = 0, rP = currHist - 1;
+		int canDB = NO;
+		while (rP >= 0 && prev < 5) {
+			canDB += (adjLocs[i] == moveHist[rP]);
+			if (canDB == YES) break;
+			prev++, rP--;
+		}
+		
+		if (canDB == NO) {
+			validMoves[enPt] = adjLocs[i]; 
+			enPt++;
+		}
+	} 
+
+
+	if (enPt == 0) {
+		free(validMoves);
+		*numReturnedLocs = 0;
+		return NULL;
+	}
+
+	*numReturnedLocs = enPt;
+	return validMoves;
 }
 
 PlaceId *DvWhereCanIGoByType(DraculaView dv, bool road, bool boat,
@@ -183,7 +227,7 @@ PlaceId *DvWhereCanIGoByType(DraculaView dv, bool road, bool boat,
 		return NULL;
 	}
 	return GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv),
-	currPlace(dv), road, false, boat, numReturnedLocs);
+		currPlace(dv), road, false, boat, numReturnedLocs);
 }
 
 PlaceId *DvWhereCanTheyGo(DraculaView dv, Player player,
