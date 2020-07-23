@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "Game.h"
 #include "GameView.h"
@@ -20,9 +21,6 @@
 #include "Map.h"
 #include "Places.h"
 #include "Queue.h"
-// add your own #includes here
-
-// TODO: ADD YOUR OWN STRUCTS HERE
 
 struct hunterView {
     GameView gv;
@@ -32,9 +30,7 @@ struct hunterView {
 ////////////////////////////////////////////////////////////////////////
 // Constructor/Destructor
 
-HunterView HvNew(char *pastPlays, Message messages[])
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+HunterView HvNew(char *pastPlays, Message messages[]) {
 	HunterView new = malloc(sizeof(*new));
 	if (new == NULL) {
 		fprintf(stderr, "Couldn't allocate HunterView!\n");
@@ -46,8 +42,7 @@ HunterView HvNew(char *pastPlays, Message messages[])
 	return new;
 }
 
-void HvFree(HunterView hv)
-{
+void HvFree(HunterView hv) {
     assert(hv != NULL);
     GvFree(hv->gv);
 	free(hv);
@@ -56,41 +51,34 @@ void HvFree(HunterView hv)
 ////////////////////////////////////////////////////////////////////////
 // Game State Information
 
-Round HvGetRound(HunterView hv)
-{
+Round HvGetRound(HunterView hv) {
 	assert (hv != NULL);
 	return GvGetRound(hv->gv);
 }
 
 
-Player HvGetPlayer(HunterView hv)
-{
+Player HvGetPlayer(HunterView hv) {
 	assert (hv != NULL);
 	return GvGetPlayer(hv->gv);
 }
 
-int HvGetScore(HunterView hv)
-{
+int HvGetScore(HunterView hv) {
 	assert (hv != NULL);
 	return GvGetScore(hv->gv);
 }
 
-int HvGetHealth(HunterView hv, Player player)
-{
-
+int HvGetHealth(HunterView hv, Player player) {
 	assert (hv != NULL);
 	return GvGetHealth(hv->gv, player);
 }
 
-PlaceId HvGetPlayerLocation(HunterView hv, Player player)
-{
+PlaceId HvGetPlayerLocation(HunterView hv, Player player) {
     assert (hv != NULL);
     return GvGetPlayerLocation(hv->gv, player);
 
 }
 
-PlaceId HvGetVampireLocation(HunterView hv)
-{
+PlaceId HvGetVampireLocation(HunterView hv) {
 	assert (hv != NULL);
 	return GvGetVampireLocation(hv->gv);
 }
@@ -98,169 +86,120 @@ PlaceId HvGetVampireLocation(HunterView hv)
 ////////////////////////////////////////////////////////////////////////
 // Utility Functions
 
-PlaceId HvGetLastKnownDraculaLocation(HunterView hv, Round *round)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
-	*round = 0;
-	int numMoves = 0; bool canFree = false;
-	PlaceId *moves = GvGetMoveHistory(hv->gv, PLAYER_DRACULA, &numMoves, &canFree);
-	PlaceId known = NOWHERE;
-	for (int i = 0; i < numMoves; i++ ){
-		if(placeIsReal(moves[i])){
-			known = moves[i];
-			*round = i;
-		}
-		else{
-			continue;
-		}
-	}
-	return known;
+PlaceId HvGetLastKnownDraculaLocation(HunterView hv, Round *round) {
+	return GvGetLatestRevealedDraculaPosition(hv->gv, round);
 }
 
+#define BFS_UNVISITED_VALUE -1
 PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
-                             int *pathLength)
-{
-	// TODO: REPLACE THIS WITH YOUR OWN IMPLEMENTATION
+                             int *pathLength) {
 	Queue Path = NewQueue();
-	
-    //set up visited array
-    //71 places in map
-	int *visited = malloc (sizeof (int)*71);
-	
-	
-	
-	//set visited array to -1 for all
-	for (int i = 0; i < 71; i++) {
-	    visited[i] = -1;
-	
+
+	int *visited = malloc(sizeof(int) * NUM_REAL_PLACES);
+	for (int i = 0; i < NUM_REAL_PLACES; ++i) {
+	    visited[i] = BFS_UNVISITED_VALUE;
 	}
 	
-	//get start location
+	// Starting location
 	PlaceId source = GvGetPlayerLocation(hv->gv, hunter);
-	
-	//set source to visited
 	visited[source] = source;
-	
-	//add source to queue
 	AddtoQueue(Path, source);
-	
-	int found = 0;
-	
-	while (found == 0 && QueueSize(Path) != 0) {
-	    PlaceId v = RemovefromQueue(Path);
-	    printf("%d\n", v);
-	    //if found destination end loop
-	    if (v == dest) {
-	        found = 1;
-	        break;
-	    } else {
-	        //Get array of places hunter can go
-	        int numberCanGo;
-	        PlaceId *canGo = //HvWhereCanIGo(hv, &numberCanGo);
-	        GvGetReachable(hv->gv, GvGetPlayer(hv->gv), GvGetRound(hv->gv), GvGetPlayerLocation(hv->gv, GvGetPlayer(hv->gv)), &numberCanGo);
-	        //loop through array of cango and add to queue if not visited
-	        for (int i = 0; i < numberCanGo; i++) {
-	            PlaceId w = canGo[i];
-	            if (visited[w] == -1) {
-	                visited[w] = v;
-	                AddtoQueue(Path, w);
-	            }
-	        }  
+
+	Round old_round_number = GvGetRound(hv->gv);   // Stored for resetting after BFS
+	Round current_round_number = old_round_number; // This fake round number will be updated as we simulate the hunter's movements in the BFS
+
+	bool found = false;
+	while (!found && QueueSize(Path) > 0) {
+	    int queue_size = QueueSize(Path);
+
+	    // The queue size at the end of each of these iterations in BFS
+	    // is guaranteed to be the size of the next "level" or "layer"
+	    // in the BFS (BFS can be visualised as an expanding ring)
+	    //
+	    // So, at the end of each of these BFS iterations, we know we have gone to the next level
+	    // so we can increment the round number (TEMPORARILY)
+	    for (int q_level_index = 0; q_level_index < queue_size; ++q_level_index) {
+            PlaceId currentLocation = RemovefromQueue(Path);
+
+            if (currentLocation == dest) {
+                // Early exit once the destination is found
+                found = true;
+                break;
+            } else {
+                // Get locations adjactent to the hunter
+                int numberOfAdjacentLocations;
+                PlaceId *canGo = GvGetReachable(hv->gv, hunter, current_round_number, currentLocation, &numberOfAdjacentLocations);
+
+                // Add to the queue all adjacent unvisited locations
+                for (int i = 0; i < numberOfAdjacentLocations; ++i) {
+                    PlaceId adjacentLocation = canGo[i];
+
+                    if (visited[adjacentLocation] == BFS_UNVISITED_VALUE) {
+                        visited[adjacentLocation] = currentLocation;
+                        AddtoQueue(Path, adjacentLocation);
+                    }
+                }
+            }
 	    }
+
+	    ++current_round_number;
 	}
-	
-	//if no path return 0
-	if (found == 0) {
+
+	if (!found) {
 	    *pathLength = 0;
 	    return NULL;	
 	}
 	
-	//allocate reverse path
+	// Prepare to reconstruct the shortest path
 	int i = 0;
 	PlaceId loop = dest;
-    PlaceId *reverse_path = malloc (sizeof (int)*71);
+    PlaceId *reverse_path = malloc (sizeof(int) * NUM_REAL_PLACES);
 	while (loop != source) {
 	    reverse_path[i] = loop;
 	    i++;
 	    loop = visited[loop];
 	}
+	*pathLength = i;
 	
-	reverse_path[i] = loop;
-	*pathLength = i + 1;
-	
-	PlaceId *_path = malloc (sizeof (int)*71);
-	//flip the path so we go from source to destination
-	int j = i;
+	PlaceId *_path = malloc (sizeof (int) * NUM_REAL_PLACES);
+	// Flip the path so we go from source to destination
+	int j = i-1;
 	int p = 0;
 	while (j >= 0) {
 	    _path[p] = reverse_path[j];
 	    j--;
 	    p++;
 	}
-	
-	return _path;
 
+	free(visited);
+
+	return _path;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // Making a Move
 
-PlaceId *HvWhereCanIGo(HunterView hv, int *numReturnedLocs)
-{	
-    //if player hasn't gone yet should return NULL
-    //so have to check if player has a move history
-    
-    if (GvGetRound(hv->gv) == 0) {
-        numReturnedLocs = 0;
-        return NULL;
-    } else {
-        return HvWhereCanTheyGo(hv, HvGetPlayer(hv), numReturnedLocs);
-    }
+PlaceId *HvWhereCanIGo(HunterView hv, int *numReturnedLocs) {
+    return HvWhereCanTheyGo(hv, HvGetPlayer(hv), numReturnedLocs);
 }
 
 PlaceId *HvWhereCanIGoByType(HunterView hv, bool road, bool rail,
-                             bool boat, int *numReturnedLocs)
-{
-    //if player hasn't gone yet should return NULL
-    //so have to check if player has a move history
-    
-    if (GvGetRound(hv->gv) == 0) {
-        numReturnedLocs = 0;
-        return NULL;
-    } else {
-        return HvWhereCanTheyGoByType(hv, HvGetPlayer(hv), road, rail, boat,
-                                      numReturnedLocs);
-    }
+                             bool boat, int *numReturnedLocs) {
+    return HvWhereCanTheyGoByType(hv, HvGetPlayer(hv), road, rail, boat,
+                                  numReturnedLocs);
 }
 
 PlaceId *HvWhereCanTheyGo(HunterView hv, Player player,
-                          int *numReturnedLocs)
-{
-    
-    if (GvGetRound(hv->gv) == 0) {
-        numReturnedLocs = 0;
-        return NULL;
-    } else {
-    return GvGetReachable(hv->gv, player, HvGetRound(hv),
-     HvGetPlayerLocation(hv, player), numReturnedLocs);
-    }
-
+                          int *numReturnedLocs) {
+    int adjusted_round = HvGetRound(hv) + (player < HvGetPlayer(hv));
+    return GvGetReachable(hv->gv, player, adjusted_round, HvGetPlayerLocation(hv, player), numReturnedLocs);
 }
 
 PlaceId *HvWhereCanTheyGoByType(HunterView hv, Player player,
                                 bool road, bool rail, bool boat,
-                                int *numReturnedLocs)
-{
-
-    
-    /*if (GvGetRound(hv->gv) == 0) {
-        numReturnedLocs = 0;
-
-        return NULL;
-    } else {*/
-    return GvGetReachableByType(hv->gv, player, HvGetRound(hv), 
-    HvGetPlayerLocation(hv, player), road, rail, boat, numReturnedLocs);
-    //}
+                                int *numReturnedLocs) {
+    int adjusted_round = HvGetRound(hv) + (player < HvGetPlayer(hv));
+    return GvGetReachableByType(hv->gv, player, adjusted_round, HvGetPlayerLocation(hv, player), road, rail, boat, numReturnedLocs);
 }
 
 ////////////////////////////////////////////////////////////////////////

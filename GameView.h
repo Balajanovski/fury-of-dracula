@@ -20,7 +20,7 @@
 
 #include "Game.h"
 #include "Places.h"
-// add your own #includes here
+#include "DraculaTrail.h"
 
 #define ENCOUNTERS_STRING_LEN 4
 #define CHARACTERS_IN_DRACULA_ENCOUNTER 2
@@ -256,6 +256,10 @@ PlaceId *GvGetReachableByType(GameView gv, Player player, Round round,
                               bool boat, int *numReturnedLocs);
 
 ////////////////////////////////////////////////////////////////////////
-// Your own interface functions
+// Custom interface functions
+
+PlaceId GvGetLatestRevealedDraculaPosition(GameView gv, Round* round);
+
+DraculaTrail GvGetDraculaTrail(GameView gv);
 
 #endif // !defined (FOD__GAME_VIEW_H_)
