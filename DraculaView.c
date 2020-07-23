@@ -98,35 +98,35 @@ PlaceId *DvGetTrapLocations(DraculaView dv, int *numTraps)
 PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 {
 	// Dracula, at the start, has no move history so return NULL.
-	int numMoves;
-	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &numMoves, false);
-	if (numMoves == 0) { 
+	int currHist;
+	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, false);
+	if (currHist == 0) { 
 		*numReturnedMoves = 0;
 		return NULL;
 	}
 
-	// Following moves: Initialises rPos to track most recent move. Analyses up to
-	// 5 prev. moves; quick scan for HIDE (veiled) and DOUBLE_BACK (receded). Performs
+	// Following moves: Initialises rPos to track most recent move. Quickly scans up to
+	// 5 prev. moves in MoveHist for HIDE (veiled) and DOUBLE_BACK (receded). Performs
 	// comparisons between arrays, moveHist and adjLoc, to determine valid moves.
-	int currLoc = currPlace(dv), retMoves;
+	int currLoc = currPlace(dv), numMoves;
 	PlaceId *adjLoc = GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
-	                    	currLoc, true, false, true, &retMoves);
+	                    	currLoc, true, false, true, &numMoves);
 	
 	int veiled = NO, receded = NO;
-	for (int prev = 0, rP = numMoves - 1; rP >= 0 && prev < 5; prev++, rP--) {
+	for (int prev = 0, rP = currHist - 1; rP >= 0 && prev < 5; prev++, rP--) {
 		veiled += (moveHist[rP] == HIDE);
 		receded += (moveHist[rP] >= DOUBLE_BACK_1);
 	}
 
-	int enPt = 0, *validMoves = malloc(retMoves * sizeof(int));
-	for (int i = 0; i < retMoves; i++) {
-		int prev = 0, rP = numMoves - 1;
+	int enPt = 0, *validMoves = malloc(numMoves * sizeof(int));
+	for (int i = 0; i < numMoves; i++) {
+		int prev = 0, rP = currHist - 1;
 		int canHide = (adjLoc[i] == currLoc), canDB = 0;
 		while (rP >= 0 && prev < 5) {
 			if (canDB + canHide == 1) break;
 			if (moveHist[rP] >= HIDE) continue;
 
-			canDB += (adjLoc[i] == moveHist[rP]);
+			canDB += (moveHist[rP] == adjLoc[i]);
 			prev++, rP--;
 		}
 
