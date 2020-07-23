@@ -348,7 +348,6 @@ static void get_reachable_by_type(GameView gv, Player player, Round round,
     ConnList reachable_connections = MapGetConnections(gv->map, from);
 
     unsigned int round_player_sum = player + round;
-    printf("Round player sum: %d\n", round_player_sum);
 
     struct connNode* iter = reachable_connections;
     while (iter != NULL) {
