@@ -107,13 +107,14 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 		return NULL;
 	}
 
-	// Following moves: Initialises rPos to track most recent move. Quickly scans up to
-	// 5 prev. moves in MoveHist for HIDE (veiled) and DOUBLE_BACK (receded). Performs
-	// comparisons between arrays, moveHist and adjLocs, to determine valid moves.
+	// Following moves: Initialises rPos to track most recent move. 
+	// Quickly scans up to 5 prev. moves in MoveHist for HIDE (veiled),
+	// DOUBLE_BACK (receded) and whether it leaves next round (DBend). 
+	// Performs comparisons between arrays, moveHist and adjLocs, to determine valid moves.
 	int numMoves = 0;
 	PlaceId *adjLocs = GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
 						currLoc, true, false, true, &numMoves);
-
+	
 	int veiled = NO, receded = NO, DBend = NO;
 	for (int prev = 0, rP = currHist - 1; rP >= 0 && prev < 5; prev++, rP--) {
 		veiled += (moveHist[rP] == HIDE);
@@ -123,12 +124,6 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 
 	int enPt = 0;
 	PlaceId *validMoves = malloc(numMoves * sizeof(PlaceId));
-
-	if (veiled == NO) {
-		validMoves = realloc(validMoves, numMoves++ * sizeof(PlaceId));
-		validMoves[enPt] = HIDE;
-		enPt++;
-	}
 	
 	for (int i = 0; i < numMoves; i++) {
 		int prev = 0, rP = currHist - 1;
@@ -147,10 +142,20 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 			enPt++;
 		}
 	} 
-	
-	validMoves = realloc(validMoves, (enPt + 1) * sizeof(PlaceId));
 
-	*numReturnedMoves = enPt + 1;
+	if (DBend == YES || receded == NO) {
+		validMoves = realloc(validMoves, numMoves++ * sizeof(PlaceId));
+		validMoves[enPt] = DOUBLE_BACK_1;
+		enPt++;
+	}
+
+	if (veiled == NO) {
+		validMoves = realloc(validMoves, numMoves++ * sizeof(PlaceId));
+		validMoves[enPt] = HIDE;
+		enPt++;
+	}
+
+	*numReturnedMoves = enPt;
 	return validMoves;
 }
 
