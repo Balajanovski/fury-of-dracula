@@ -21,7 +21,7 @@
 #include "Map.h"
 // add your own #includes here
 #define currPlace(gv) (DvGetPlayerLocation(gv, PLAYER_DRACULA))
-#define no_db_h(cmp) (cmp != moveHist[rP] && cmp != currLoc)
+#define canDBorHide() (cmp != moveHist[rP] && cmp != currLoc)
 #define YES 	1
 #define NO 		0
 
@@ -105,28 +105,25 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 		return NULL;
 	}
 
-	// Following moves: Initialises rPos to track most recent move. Analyses 
-	// up to 5 prev. moves and check for HIDE (veiled) and DOUBLE_BACK (receded).
-	// Performs comparisons between arrays, moveHist and adjLoc, to determine valid moves.
+	// Following moves: Initialises rPos to track most recent move. Analyses up to
+	// 5 prev. moves; quick scan for HIDE (veiled) and DOUBLE_BACK (receded). Performs
+	// comparisons between arrays, moveHist and adjLoc, to determine valid moves.
+	int currLoc = currPlace(dv), retMoves;
+	PlaceId *adjLoc = GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
+	                    	currLoc, true, false, true, &retMoves);
 	
 	int veiled = NO, receded = NO;
 	for (int prev = 0, rP = numMoves - 1; rP >= 0 && prev < 5; prev++, rP--) {
 		veiled += (moveHist[rP] == HIDE);
 		receded += (moveHist[rP] >= DOUBLE_BACK_1);
 	}
-	
-	int currLoc = currPlace(dv), retMoves;
-	PlaceId *adjLoc = GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
-	                    	currLoc, true, false, true, &retMoves);
-	
 
 	int enPt = 0, *validMoves = malloc(retMoves * sizeof(int));
 	for (int i = 0; i < retMoves; i++) {
-		
-		int canHide = (adjLoc[i] == currLoc), canDB = 0;
 		int prev = 0, rP = numMoves - 1;
+		int canHide = (adjLoc[i] == currLoc), canDB = 0;
 		while (rP >= 0 && prev < 5) {
-			if (canHide + canDB == 1) break;
+			if (canDB + canHide == 1) break;
 			if (moveHist[rP] >= HIDE) continue;
 
 			canDB += (adjLoc[i] == moveHist[rP]);
@@ -144,7 +141,14 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 			enPt++;
 		}
 	}
+	
 	free(adjLoc);
+	if (enPt == 0) {
+		*numReturnedMoves = 0;
+		free(validMoves);
+		return NULL;
+	}
+
 	validMoves = realloc(validMoves, enPt * sizeof(int));
 	*numReturnedMoves = enPt;
 	return adjLoc;
