@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "LocationDynamicArray.h"
 #include "DraculaView.h"
 #include "Game.h"
 #include "GameView.h"
@@ -99,29 +98,24 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 {
 	// Dracula, at the start, has no move history so return NULL.
 	int currHist = 0; bool noFree = false;
-	int currLoc = currPlace(dv);
+	PlaceId currLoc = currPlace(dv);
 	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, &noFree);
 
 	if (currHist == 0) { 
 		*numReturnedMoves = 0;
 		return NULL;
 	}
+	// Initialises rP to track most recent move.
+	// Quickly scans up to 5 prev. moves in MoveHist for HIDE (veiled).
+	int veiled = NO;
+	for (int prev = 1, rP = currHist - 1; rP >= 0 && prev <= 5; prev++, rP--) {
+		veiled += (moveHist[rP] == currLoc && prev == 2);
+	}
 
-	// Following moves: Initialises rPos to track most recent move. 
-	// Quickly scans up to 5 prev. moves in MoveHist for HIDE (veiled),
-	// DOUBLE_BACK (receded) and whether it leaves next round (DBend). 
 	// Performs comparisons between arrays, moveHist and adjLocs, to determine valid moves.
 	int numMoves = 0;
 	PlaceId *adjLocs = GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
-						currLoc, true, false, true, &numMoves);
-	
-	int veiled = NO, receded = NO, DBend = NO;
-	for (int prev = 0, rP = currHist - 1; rP >= 0 && prev < 5; prev++, rP--) {
-		veiled += (moveHist[rP] == HIDE);
-		receded += usedDB(moveHist[rP]);
-		DBend += (usedDB(moveHist[rP]) && prev == 4);
-	}
-
+											currLoc, true, false, true, &numMoves);
 	int enPt = 0;
 	PlaceId *validMoves = malloc(numMoves * sizeof(PlaceId));
 	
@@ -129,12 +123,12 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 		int prev = 0, rP = currHist - 1;
 		int canDB = NO;
 		while (rP >= 0 && prev < 5) {
-			canDB += (adjLocs[i] == moveHist[rP] || DBend == YES);
+			canDB += (adjLocs[i] == moveHist[rP]);
 			if (canDB == YES) break;
 			prev++, rP--;
 		}
 		
-		if ((DBend == YES || receded == NO) && canDB == YES) {
+		if (canDB == YES) {
 			validMoves[enPt] = DOUBLE_BACK_1 + prev;
 			enPt++;	
 		} else if (canDB == NO) {
@@ -143,7 +137,7 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 		}
 	} 
 
-	if (DBend == YES || receded == NO) {
+	if () {
 		validMoves = realloc(validMoves, numMoves++ * sizeof(PlaceId));
 		validMoves[enPt] = DOUBLE_BACK_1;
 		enPt++;
@@ -169,9 +163,8 @@ PlaceId *DvWhereCanIGo(DraculaView dv, int *numReturnedLocs)
 {
 	// Dracula, at the start, has no move history so return NULL.
 	int currHist = 0; bool noFree = false;
-	int currLoc = currPlace(dv);
 	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, &noFree);
-
+	
 	if (currHist == 0) { 
 		*numReturnedLocs = 0;
 		return NULL;
@@ -179,32 +172,24 @@ PlaceId *DvWhereCanIGo(DraculaView dv, int *numReturnedLocs)
 
 	int numMoves = 0;
 	PlaceId *adjLocs = GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
-						currLoc, true, false, true, &numMoves);
-	
-	int veiled = NO, receded = NO;
-	for (int prev = 0, rP = currHist - 1; rP >= 0 && prev < 5; prev++, rP--) {
-		veiled += (moveHist[rP] == HIDE);
-		receded += usedDB(moveHist[rP]);
-	}
+						currPlace(dv), true, false, true, &numMoves);
 
 	int enPt = 0;
 	PlaceId *validMoves = malloc(numMoves * sizeof(PlaceId));
 	
 	for (int i = 0; i < numMoves; i++) {
-		int prev = 0, rP = currHist - 1;
-		int canDB = NO;
+		int prev = 0, rP = currHist - 1, isDup = NO;
 		while (rP >= 0 && prev < 5) {
-			canDB += (adjLocs[i] == moveHist[rP]);
-			if (canDB == YES) break;
+			isDup += (adjLocs[i] == moveHist[rP]);
+			if (isDup == YES) break;
 			prev++, rP--;
 		}
 		
-		if (canDB == NO) {
+		if (isDup == NO) {
 			validMoves[enPt] = adjLocs[i]; 
 			enPt++;
 		}
 	} 
-
 
 	if (enPt == 0) {
 		free(validMoves);
