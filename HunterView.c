@@ -191,6 +191,11 @@ PlaceId *HvWhereCanIGoByType(HunterView hv, bool road, bool rail,
 
 PlaceId *HvWhereCanTheyGo(HunterView hv, Player player,
                           int *numReturnedLocs) {
+                          
+    if (HvGetPlayerLocation(hv, player) == NOWHERE) {
+        *numReturnedLocs = 0;
+        return NULL;
+    }               
     int adjusted_round = HvGetRound(hv) + (player < HvGetPlayer(hv));
     return GvGetReachable(hv->gv, player, adjusted_round, HvGetPlayerLocation(hv, player), numReturnedLocs);
 }
@@ -198,6 +203,11 @@ PlaceId *HvWhereCanTheyGo(HunterView hv, Player player,
 PlaceId *HvWhereCanTheyGoByType(HunterView hv, Player player,
                                 bool road, bool rail, bool boat,
                                 int *numReturnedLocs) {
+                                
+    if (HvGetPlayerLocation(hv, player) == NOWHERE) {
+        *numReturnedLocs = 0;
+        return NULL;
+    }
     int adjusted_round = HvGetRound(hv) + (player < HvGetPlayer(hv));
     return GvGetReachableByType(hv->gv, player, adjusted_round, HvGetPlayerLocation(hv, player), road, rail, boat, numReturnedLocs);
 }
