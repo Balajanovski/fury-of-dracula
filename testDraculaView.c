@@ -240,6 +240,99 @@ int main(void)
 		printf("Test passed!\n");
 		DvFree(dv);
 	}
+	
+	{///////////////////////////////////////////////////////////////////
+        
+        printf("Checking where can they go when no move made\n");
+        
+        char *trail = "";
+        
+        Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+        
+        int numLocs = -1;
+ 
+        PlaceId *locs = DvWhereCanTheyGo(dv, PLAYER_LORD_GODALMING, &numLocs);
+        assert(numLocs == 0);
+        assert(locs == NULL);      
+        DvFree(dv);
+        printf("Test passed!\n");
+    
+    }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing wherecanigo when player hasn't made a move\n");
+        
+        char *trail = "";
+        
+        Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+        
+        int numLocs = -1;
+        
+        PlaceId *locs = DvWhereCanIGo(dv, &numLocs);
+        assert(numLocs == 0);
+        assert(locs == NULL);
+        DvFree(dv);
+        printf("Test passed\n");
+        
+    }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing wherecanigo when player hasn't made a move\n");
+        
+        char *trail = "";
+        
+        Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+        
+        int numLocs = -1;
+        
+        PlaceId *locs = DvWhereCanIGoByType(dv, false, true, &numLocs);
+        assert(numLocs == 0);
+        assert(locs == NULL);
+        DvFree(dv);
+        printf("Test passed\n");
+        
+    }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing wherecanigo when player hasn't made a move\n");
+        
+        char *trail = "";
+        
+        Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+        
+        int numLocs = -1;
+        
+        PlaceId *locs = DvWhereCanTheyGoByType(dv, PLAYER_DR_SEWARD,
+                                               true, false, false,  &numLocs);
+        assert(numLocs == 0);
+        assert(locs == NULL);
+        DvFree(dv);
+        printf("Test passed\n");
+        
+    }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing where can I go when a previous player made a move\n");
+        
+        char *trail = "GSZ.... SGE.... HGE....";
+        
+        Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+        
+        int numLocs = -1;
+        
+        PlaceId *loc = DvWhereCanIGo(dv, &numLocs);
+        
+        assert(loc == NULL);
+        assert(numLocs == 0);
+        
+        DvFree(dv);
+        printf("Test passed\n");
+    }
 
 	return EXIT_SUCCESS;
 }
