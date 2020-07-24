@@ -469,6 +469,119 @@ int main(void)
         HvFree(hv);
         printf("Test passed!\n");
     }
+    
+    {///////////////////////////////////////////////////////////////////
+        
+        printf("Checking where can they go when no move made\n");
+        
+        char *trail = "";
+        
+        Message messages[5] = {};
+        HunterView hv = HvNew(trail, messages);
+        
+        int numLocs = -1;
+ 
+        PlaceId *locs = HvWhereCanTheyGo(hv, PLAYER_LORD_GODALMING, &numLocs);
+        assert(numLocs == 0);
+        assert(locs == NULL);      
+        HvFree(hv);
+        printf("Test passed!\n");
+    
+    }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing wherecanigo when player hasn't made a move\n");
+        
+        char *trail = "";
+        
+        Message messages[5] = {};
+        HunterView hv = HvNew(trail, messages);
+        
+        int numLocs = -1;
+        
+        PlaceId *locs = HvWhereCanIGo(hv, &numLocs);
+        assert(numLocs == 0);
+        assert(locs == NULL);
+        HvFree(hv);
+        printf("Test passed\n");
+        
+    }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing wherecanigo when player hasn't made a move\n");
+        
+        char *trail = "";
+        
+        Message messages[5] = {};
+        HunterView hv = HvNew(trail, messages);
+        
+        int numLocs = -1;
+        
+        PlaceId *locs = HvWhereCanIGoByType(hv, false, true, true, &numLocs);
+        assert(numLocs == 0);
+        assert(locs == NULL);
+        HvFree(hv);
+        printf("Test passed\n");
+        
+    }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing wherecanigo when player hasn't made a move\n");
+        
+        char *trail = "";
+        
+        Message messages[5] = {};
+        HunterView hv = HvNew(trail, messages);
+        
+        int numLocs = -1;
+        
+        PlaceId *locs = HvWhereCanTheyGoByType(hv, PLAYER_DR_SEWARD,
+                                               true, false, false,  &numLocs);
+        assert(numLocs == 0);
+        assert(locs == NULL);
+        HvFree(hv);
+        printf("Test passed\n");
+        
+    }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing getdraculalocation returns NOWHERE\n");
+        
+        char *trail =
+                "GSZ.... SGE.... HGE.... MGE.... DC?.V..";
+                
+        Message messages[5] = {};
+        HunterView hv = HvNew(trail, messages);
+        
+        Round round = -1;
+        
+        PlaceId loc = HvGetLastKnownDraculaLocation(hv, &round);
+        
+        assert(loc == NOWHERE);
+        assert(round == -1);
+        HvFree(hv);
+        printf("Test passed\n");
+    
+    }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing where can I go when a previous player made a move\n");
+        
+        char *trail = "GSZ.... SGE.... HGE....";
+        
+        Message messages[5] = {};
+        HunterView hv = HvNew(trail, messages);
+        
+        int numLocs = -1;
+        
+        PlaceId *loc = HvWhereCanIGo(hv, &numLocs);
+        
+        assert(loc == NULL);
+        assert(numLocs == 0);
+        
+        HvFree(hv);
+        printf("Test passed\n");
+    }
 
     return EXIT_SUCCESS;
 }
