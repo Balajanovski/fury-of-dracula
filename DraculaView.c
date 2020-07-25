@@ -235,7 +235,7 @@ PlaceId *DvWhereCanTheyGo(DraculaView dv, Player player, int *numReturnedLocs)
         *numReturnedLocs = 0;
         return NULL;
     }
-	int adjusted_round = DvGetRound(dv) + (player > GvGetPlayer(dv->dracInfo));
+	int adjusted_round = DvGetRound(dv) + (player < GvGetPlayer(dv->dracInfo));
 	if (player == PLAYER_DRACULA) {
 		return DvWhereCanIGo(dv, numReturnedLocs);
 	}
