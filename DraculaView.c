@@ -121,7 +121,7 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 	PlaceId *adjLocs = GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
 											currLoc, true, false, true, &numMoves);
 	int enPt = 0;
-	PlaceId *validMoves = malloc(numMoves * sizeof(PlaceId));
+	PlaceId *validMoves = malloc(numMoves * sizeof(PlaceId*));
 	
 	for (int i = 0; i < numMoves; i++) {
 		int prev = 0, rP = currHist - 1;
@@ -142,7 +142,7 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 	} 
 
 	if (veiled == NO) {
-		validMoves = realloc(validMoves, numMoves++ * sizeof(PlaceId));
+		validMoves = realloc(validMoves, numMoves++ * sizeof(PlaceId*));
 		validMoves[enPt] = HIDE;
 		enPt++;
 	}

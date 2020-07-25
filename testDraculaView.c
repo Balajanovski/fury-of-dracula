@@ -169,26 +169,34 @@ int main(void)
 		DvFree(dv);
 	}
 
-/*{///////////////////////////////////////////////////////////////////
+	{///////////////////////////////////////////////////////////////////
 	
 		printf("DvGetValidMoves Test #3: Double_Back falling off\n");
 
 			char *trail =
-			"";
+			"GST.... SST.... HST.... MST.... DGO.V.. "
+			"GST.... SST.... HST.... MST.... DMIT... "
+			"GST.... SST.... HST.... MST.... DVET... "
+			"GST.... SST.... HST.... MST.... DFLT... "
+			"GST.... SST.... HST.... MST....";
 
-		Message messages[] = {};
+		Message messages[24] = {};
 		DraculaView dv = DvNew(trail, messages);
 		
 		int numMoves = -1;
 		PlaceId *moves = DvGetValidMoves(dv, &numMoves);
-		assert(numMoves == );
+		assert(numMoves == 5);
 		sortPlaces(moves, numMoves);
-
+		assert(moves[0] == ROME);
+		assert(moves[1] == HIDE);
+		assert(moves[2] == DOUBLE_BACK_1);
+		assert(moves[3] == DOUBLE_BACK_2);
+		assert(moves[4] == DOUBLE_BACK_4);
 		free(moves);
 		
 		printf("Test passed!\n");
 		DvFree(dv);
-	} */
+	}
 
 	{///////////////////////////////////////////////////////////////////
 	
@@ -243,7 +251,7 @@ int main(void)
 	
 	{///////////////////////////////////////////////////////////////////
         
-        printf("Checking where can they go when no move made\n");
+        printf("DvWhereCanTheyGo Test #1: No move made\n");
         
         char *trail = "";
         
@@ -261,7 +269,7 @@ int main(void)
     }
     
     {///////////////////////////////////////////////////////////////////
-        printf("Testing wherecanigo when player hasn't made a move\n");
+        printf("DvWhereCanTheyGo Test #2: [Player] hasn't made a move\n");
         
         char *trail = "";
         
@@ -279,7 +287,26 @@ int main(void)
     }
     
     {///////////////////////////////////////////////////////////////////
-        printf("Testing wherecanigo when player hasn't made a move\n");
+        printf("DvWhereCanIGo Test #3: First move yet to be\n");
+        
+        char *trail = "GSZ.... SGE.... HGE....";
+        
+        Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+        
+        int numLocs = -1;
+        
+        PlaceId *loc = DvWhereCanIGo(dv, &numLocs);
+        
+        assert(loc == NULL);
+        assert(numLocs == 0);
+        
+        DvFree(dv);
+        printf("Test passed\n");
+    }
+
+    {///////////////////////////////////////////////////////////////////
+        printf("DvWhereCanIGoByType Test #2: [Player] hasn't made a move\n");
         
         char *trail = "";
         
@@ -297,7 +324,7 @@ int main(void)
     }
     
     {///////////////////////////////////////////////////////////////////
-        printf("Testing wherecanigo when player hasn't made a move\n");
+        printf("DvWhereCanTheyGo Test #2: [Player] hasn't made a move\n");
         
         char *trail = "";
         
@@ -313,25 +340,6 @@ int main(void)
         DvFree(dv);
         printf("Test passed\n");
         
-    }
-    
-    {///////////////////////////////////////////////////////////////////
-        printf("Testing where can I go when a previous player made a move\n");
-        
-        char *trail = "GSZ.... SGE.... HGE....";
-        
-        Message messages[5] = {};
-        DraculaView dv = DvNew(trail, messages);
-        
-        int numLocs = -1;
-        
-        PlaceId *loc = DvWhereCanIGo(dv, &numLocs);
-        
-        assert(loc == NULL);
-        assert(numLocs == 0);
-        
-        DvFree(dv);
-        printf("Test passed\n");
     }
 
 	return EXIT_SUCCESS;
