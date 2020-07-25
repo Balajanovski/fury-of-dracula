@@ -582,6 +582,43 @@ int main(void)
         HvFree(hv);
         printf("Test passed\n");
     }
-
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing dracula location after teleport\n");
+        
+        char *trail =
+                "GGE.... SGE.... HVI.... MGE.... DCD.V.. "
+                "GGE.... SGE.... HBD.... MGE.... DKLT... "
+                "GGE.... SGE.... HSZ.... MGE.... DTPT... ";
+        Message messages[5] = {};
+        HunterView hv = HvNew(trail, messages);
+        
+        PlaceId loc = HvGetPlayerLocation(hv, PLAYER_DRACULA);
+        
+        assert(loc == CASTLE_DRACULA);
+        
+        HvFree(hv);
+        printf("Test passed\n");
+    }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing dracula location after a double back\n");
+         
+        char *trail =
+                "GST.... SAO.... HCD.... MAO.... DGE.V.. "
+                "GGEVD.. SAO.... HCD.... MAO.... DC?T... "
+                "GST.... SAO.... HCD.... MAO.... DD2T... ";  
+        
+        Message messages[5] = {};
+        HunterView hv = HvNew(trail, messages);
+        
+        PlaceId loc = HvGetPlayerLocation(hv, PLAYER_DRACULA);
+        
+        assert(loc == GENEVA);
+        
+        HvFree(hv);
+        printf("Test passed\n");
+    }
+    
     return EXIT_SUCCESS;
 }

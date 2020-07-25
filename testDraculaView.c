@@ -258,6 +258,61 @@ int main(void)
         DvFree(dv);
         printf("Test passed\n");
     }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing where can they go by type when everything false\n");
+        
+        char *trail = "GSZ.... SGE.... HGE....";
+        
+        Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+        
+        int numLocs = -1;
+        
+        PlaceId *locs = DvWhereCanTheyGoByType(dv, PLAYER_MINA_HARKER, 
+                        false, false, false, &numLocs);
+                        
+        assert(numLocs == 0);
+        assert(locs == NULL);
+        
+        DvFree(dv);
+        printf("Test passed\n");
+    
+    }
+    
+    {///////////////////////////////////////////////////////////////////
+        printf("Testing where dracula can go by type when dracula not moved\n");
+        
+        char *trail = "GGE.... SGE.... HGE.... MGE.... DKL.V..";
+        
+        Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+        
+        int numLocs = -1;
+        int numLocs2 = -1;
+        
+        PlaceId *locs = DvWhereCanIGoByType(dv, true, true, &numLocs);
+        
+        assert(numLocs == 6);
+        sortPlaces(locs, numLocs);
+		assert(locs[0] == BELGRADE);
+		assert(locs[1] == BUCHAREST);
+		assert(locs[2] == BUDAPEST);
+		assert(locs[3] == CASTLE_DRACULA);
+		assert(locs[4] == GALATZ);
+		assert(locs[5] == SZEGED);
+		free(locs);
+        
+        PlaceId *locsFalse = DvWhereCanIGoByType(dv, false, false, &numLocs2);
+        
+        assert(numLocs2 == 0);
+        assert(locsFalse == NULL);
+        free(locsFalse);
+        
+        DvFree(dv);
+        printf("Test passed\n");
+    
+    }
 
 	return EXIT_SUCCESS;
 }
