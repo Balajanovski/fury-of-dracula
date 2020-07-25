@@ -96,35 +96,40 @@ PlaceId *DvGetTrapLocations(DraculaView dv, int *numTraps)
 
 PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 {
-	// Dracula, at the start, has no move history so return NULL.
-	int currHist = 0; bool noFree = false;
-	PlaceId currLoc = currPlace(dv);
-	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, &noFree);
-
-	if (currHist == 0) { 
+	// Dracula, at the start, makes no move; NULL is returned.
+	int histLen = 0; bool noFree = false;
+	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &histLen, &noFree);
+	if (histLen == 0) { 
 		*numReturnedMoves = 0;
 		return NULL;
 	}
 
-	// Initialises rP to track most recent move.
-	// Quickly scans up to 5 prev. moves in MoveHist for HIDE (veiled),
-	// DOUBLE_BACK (receded) and whether it leaves next round (DBend).
+	// In terms of usage: [veiled] detects HIDE, [receded] detects DOUBLE_BACK 
+	// and [DBend] detects DOUBLE_BACK in the 5th previous round.
+	// [rP] tracks most recent move, [prev] limits search, up to 5 moves.
 	int veiled = NO, receded = NO, DBend = NO;
-	for (int prev = 1, rP = currHist - 1; rP >= 0 && prev <= 5; prev++, rP--) {
+	for (int prev = 1, rP = histLen - 1; rP >= 0 && prev <= 5; prev++, rP--) {
 		veiled += (moveHist[rP] == HIDE);
 		receded += usedDB(moveHist[rP]);
 		DBend += (usedDB(moveHist[rP]) && prev == 5);
 	}
 
-	// Performs comparisons between arrays, moveHist and adjLocs, to determine valid moves.
 	int numMoves = 0;
 	PlaceId *adjLocs = GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
-											currLoc, true, false, true, &numMoves);
-	int enPt = 0;
-	PlaceId *validMoves = malloc(numMoves * sizeof(PlaceId*));
+											currPlace(dv), true, false, true, &numMoves);
 	
+	int enPt = 0; PlaceId *validMoves = malloc(numMoves * sizeof(PlaceId*));
+	if (validMoves == NULL) {
+		fprintf(stderr, "Unable to allocate validMoves. Aborting...\n");
+            exit(EXIT_FAILURE);
+	}
+
+	// Performs array comparsions between moveHist and adjLocs with accord
+	// to [veiled], [receded] and [DBend].
+	// If adjLoc is unique or found in last 5 rounds with [receded] = NO,
+	// add to validMoves. Otherwise, obtain another location from adjLocs.
 	for (int i = 0; i < numMoves; i++) {
-		int prev = 0, rP = currHist - 1;
+		int prev = 0, rP = histLen - 1;
 		int canDB = NO;
 		while (rP >= 0 && prev < 5) {
 			canDB += (adjLocs[i] == moveHist[rP] || DBend == YES);
@@ -147,99 +152,81 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 		enPt++;
 	}
 
-	if (enPt == 0) {
+	if (numMoves == 0) {
 		free(validMoves);
 		*numReturnedMoves = 0;
 		return NULL;
 	}
 
-	*numReturnedMoves = enPt;
+	*numReturnedMoves = numMoves;
 	return validMoves;
+}
+
+PlaceId *FilterDuplicates(DraculaView dv, PlaceId *adjLocs, int *numMoves)
+{
+	// Dracula, at the start, has no move history so return NULL.
+	int histLen = 0; bool noFree = false;
+	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &histLen, &noFree);
+	
+	if (histLen == 0) { 
+		*numMoves = 0;
+		return NULL;
+	}		
+
+	int enPt = 0; PlaceId *validMoves = malloc(*numMoves * sizeof(PlaceId*));
+	if (validMoves == NULL) {
+		fprintf(stderr, "Unable to allocate validMoves. Aborting...\n");
+            exit(EXIT_FAILURE);
+	}
+
+	for (int i = 0; i < *numMoves; i++) {
+		int prev = 0, rP = histLen - 1, isDup = NO;
+		while (rP >= 0 && prev < 5) {
+			isDup += (adjLocs[i] == moveHist[rP]);
+			if (isDup == YES) break;
+			prev++, rP--;
+		}
+		
+		if (isDup == NO) {
+			validMoves[enPt] = adjLocs[i]; 
+			enPt++;
+		}
+	} 
+
+	if (enPt == 0) {
+		free(validMoves);
+		*numMoves = 0;
+		return NULL;
+	}
+
+	*numMoves = enPt;
+	return validMoves;
+
 }
 
 PlaceId *DvWhereCanIGo(DraculaView dv, int *numReturnedLocs)
 {
-	// Dracula, at the start, has no move history so return NULL.
-	int currHist = 0; bool noFree = false;
-	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, &noFree);
-	
-	if (currHist == 0) { 
-		*numReturnedLocs = 0;
-		return NULL;
-	}
-
 	int numMoves = 0;
 	PlaceId *adjLocs = GvGetReachable(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
 						currPlace(dv), &numMoves);
 
-	int enPt = 0;
-	PlaceId *validMoves = malloc(numMoves * sizeof(PlaceId));
+	PlaceId *locationSet = FilterDuplicates(dv,adjLocs, &numMoves);
+	*numReturnedLocs = numMoves;
+
+	return locationSet;
 	
-	for (int i = 0; i < numMoves; i++) {
-		int prev = 0, rP = currHist - 1, isDup = NO;
-		while (rP >= 0 && prev < 5) {
-			isDup += (adjLocs[i] == moveHist[rP]);
-			if (isDup == YES) break;
-			prev++, rP--;
-		}
-		
-		if (isDup == NO) {
-			validMoves[enPt] = adjLocs[i]; 
-			enPt++;
-		}
-	} 
-
-	if (enPt == 0) {
-		free(validMoves);
-		*numReturnedLocs = 0;
-		return NULL;
-	}
-
-	*numReturnedLocs = enPt;
-	return validMoves;
-
 }
 
 PlaceId *DvWhereCanIGoByType(DraculaView dv, bool road, bool boat,
                              int *numReturnedLocs) {
-	// Dracula, at the start, has no move history so return NULL.
-	int currHist = 0; bool noFree = false;
-	PlaceId *moveHist = GvGetMoveHistory(dv->dracInfo, PLAYER_DRACULA, &currHist, &noFree);
-	
-	if (currHist == 0) { 
-		*numReturnedLocs = 0;
-		return NULL;
-	}
 
 	int numMoves = 0;
 	PlaceId *adjLocs = GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
 						currPlace(dv), road, false, boat, &numMoves);
-
-	int enPt = 0;
-	PlaceId *validMoves = malloc(numMoves * sizeof(PlaceId));
 	
-	for (int i = 0; i < numMoves; i++) {
-		int prev = 0, rP = currHist - 1, isDup = NO;
-		while (rP >= 0 && prev < 5) {
-			isDup += (adjLocs[i] == moveHist[rP]);
-			if (isDup == YES) break;
-			prev++, rP--;
-		}
-		
-		if (isDup == NO) {
-			validMoves[enPt] = adjLocs[i]; 
-			enPt++;
-		}
-	} 
-
-	if (enPt == 0) {
-		free(validMoves);
-		*numReturnedLocs = 0;
-		return NULL;
-	}
-
-	*numReturnedLocs = enPt;
-	return validMoves;
+	PlaceId *locationSet = FilterDuplicates(dv,adjLocs, &numMoves);
+	*numReturnedLocs = numMoves;
+	return locationSet;
 }
 
 PlaceId *DvWhereCanTheyGo(DraculaView dv, Player player, int *numReturnedLocs) 
