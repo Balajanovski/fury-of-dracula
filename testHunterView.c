@@ -620,5 +620,61 @@ int main(void)
         printf("Test passed\n");
     }
     
+    {///////////////////////////////////////////////////////////////////
+        printf("HvGetVampireLocation Test #1: Spawning immature vampire and staking it\n");
+        char *trail1 = 
+                "GBU.... SGE.... HBR.... MMU.... DPR.V..";
+        Message messages[5] = {};
+        HunterView hv = HvNew(trail1, messages);
+        PlaceId loc = HvGetVampireLocation(hv);
+        assert(loc == PRAGUE);
+        HvFree(hv);
+
+        char *trail2 = 
+                "GBU.... SGE.... HBR.... MMU.... DPR.V.."
+                "GCO.... SGE.... HPRV... MMU.... DNUT...";
+        hv = HvNew(trail2, messages);
+        loc = HvGetVampireLocation(hv);
+        assert(loc == NOWHERE);
+        HvFree(hv);
+        printf("Test passed\n");
+    }
+
+    {///////////////////////////////////////////////////////////////////
+        printf("HvGetVampireLocation Test #2: Immature vampire not encountered\n");
+        char *trail = 
+                "GBU.... SGE.... HBR.... MMU.... DPR.V.."
+                "GCO.... SGE.... HBR.... MMU.... DNUT...";
+
+        Message messages[5] = {};
+        HunterView hv = HvNew(trail, messages);
+        PlaceId loc = HvGetVampireLocation(hv);
+        assert(loc == CITY_UNKNOWN);
+        
+        HvFree(hv);
+        printf("Test passed\n");
+    }
+
+    {///////////////////////////////////////////////////////////////////
+        printf("HvGetVampireLocation Test #3: Non-existent, immature vampire\n");
+        printf("Process: encountering before maturity and at maturity.\n");
+        char *trail = 
+                "GBU.... SGE.... HBR.... MMU.... DPR.V.."
+                "GCO.... SGE.... HBR.... MMU.... DC?T..."
+                "GFR.... SGE.... HPRV... MMU.... DC?T..."
+                "GLI.... SGE.... HVI.... MMU.... DC?T..."
+                "GHA.... SGE.... HVI.... MMU.... DC?T..."
+                "GBR.... SGE.... HVI.... MMU.... DC?T..."
+                "GPR.... SGE.... HVI.... MMU.... DC?T...";
+
+        Message messages[5] = {};
+        HunterView hv = HvNew(trail, messages);
+        PlaceId loc = HvGetVampireLocation(hv);
+        assert(loc == NOWHERE);
+        
+        HvFree(hv);
+        printf("Test passed\n");
+    }
+
     return EXIT_SUCCESS;
 }
