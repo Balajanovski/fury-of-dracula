@@ -104,14 +104,12 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 		return NULL;
 	}
 
-	// In terms of usage: [veiled] detects HIDE, [receded] detects DOUBLE_BACK 
-	// and [DBend] detects DOUBLE_BACK in the 5th previous round.
+	// In terms of usage: [veiled] detects HIDE, [receded] detects DOUBLE_BACK.
 	// [rP] tracks most recent move, [prev] limits search, up to 5 moves.
-	int veiled = NO, receded = NO, DBend = NO;
+	int veiled = NO, receded = NO;
 	for (int prev = 1, rP = histLen - 1; rP >= 0 && prev <= 5; prev++, rP--) {
 		veiled += (moveHist[rP] == HIDE);
-		receded += usedDB(moveHist[rP]);
-		DBend += (usedDB(moveHist[rP]) && prev == 5);
+		receded += (moveHist[rP] >= DOUBLE_BACK_1);
 	}
 
 	int numMoves = 0;
@@ -125,22 +123,21 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 	}
 
 	// Performs array comparsions between moveHist and adjLocs with accord
-	// to [veiled], [receded] and [DBend].
+	// to [veiled], [receded].
 	// If adjLoc is unique or found in last 5 rounds with [receded] = NO,
 	// add to validMoves. Otherwise, obtain another location from adjLocs.
 	for (int i = 0; i < numMoves; i++) {
-		int prev = 0, rP = histLen - 1;
-		int canDB = NO;
+		int prev = 0, rP = histLen - 1, canDB = NO;
 		while (rP >= 0 && prev < 5) {
-			canDB += (adjLocs[i] == moveHist[rP] || DBend == YES);
+			canDB += (adjLocs[i] == moveHist[rP]);
 			if (canDB == YES) break;
 			prev++, rP--;
 		}
 		
-		if ((DBend == YES || receded == NO) && canDB == YES) {
+		if (receded == NO && canDB == YES) {
 			validMoves[enPt] = DOUBLE_BACK_1 + prev;
 			enPt++;	
-		} else if (canDB == NO) {
+		} else if (canDB == NO) { 
 			validMoves[enPt] = adjLocs[i]; 
 			enPt++;
 		}
@@ -157,8 +154,11 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 		*numReturnedMoves = 0;
 		return NULL;
 	}
+	
+	//for(int i = 0; i < enPt; i++)
+	//	printf("%d ", validMoves[i]);
 
-	*numReturnedMoves = numMoves;
+	*numReturnedMoves = enPt;
 	return validMoves;
 }
 
@@ -198,6 +198,9 @@ PlaceId *FilterDuplicates(DraculaView dv, PlaceId *adjLocs, int *numMoves)
 		*numMoves = 0;
 		return NULL;
 	}
+
+	for(int i = 0; i < enPt; i++)
+		printf("%d ", validMoves[i]);
 
 	*numMoves = enPt;
 	return validMoves;
