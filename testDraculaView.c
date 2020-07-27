@@ -320,7 +320,7 @@ int main(void)
         
 		printf("DvWhereCanIGo Test #3: Dracula hasn't made a move\n");
         
-        char *trail = "";
+        char *trail = " ";
         
         Message messages[5] = {};
         DraculaView dv = DvNew(trail, messages);
@@ -348,12 +348,12 @@ int main(void)
         
         int numLocs = -1;
         
-        PlaceId *loc = DvWhereCanIGo(dv, &numLocs);
+        PlaceId *locs = DvWhereCanIGo(dv, &numLocs);
         
-        assert(loc == NULL);
+        assert(locs == NULL);
         assert(numLocs == 0);
         
-		free(loc);
+		free(locs);
         DvFree(dv);
         printf("Test passed\n");
     }
@@ -407,54 +407,9 @@ int main(void)
 		DvFree(dv);
 		printf("Test passed\n");
 	}
-	{///////////////////////////////////////////////////////////////////
-        
-        printf("DvWhereCanTheyGo Test #1: No moves made by any players\n");
-        
-        char *trail = "";
-        
-        Message messages[5] = {};
-        DraculaView dv = DvNew(trail, messages);
-        
-        int numLocs = -1;
- 
-        PlaceId *locs = DvWhereCanTheyGo(dv, PLAYER_LORD_GODALMING, &numLocs);
-        assert(numLocs == 0);
-        assert(locs == NULL);      
-		DvFree(dv);
-		
-
-		dv = DvNew(trail, messages);
-        locs = DvWhereCanTheyGo(dv, PLAYER_DR_SEWARD, &numLocs);
-        assert(numLocs == 0);
-        assert(locs == NULL);
-		DvFree(dv);
-		
-
-		dv = DvNew(trail, messages);
-		locs = DvWhereCanTheyGo(dv, PLAYER_MINA_HARKER, &numLocs);
-        assert(numLocs == 0);
-        assert(locs == NULL);
-	    DvFree(dv);
-
-		dv = DvNew(trail, messages);
-		locs = DvWhereCanTheyGo(dv, PLAYER_VAN_HELSING, &numLocs);
-        assert(numLocs == 0);
-        assert(locs == NULL);
-        DvFree(dv);
-		
-		dv = DvNew(trail, messages);
-		locs = DvWhereCanTheyGo(dv, PLAYER_DRACULA, &numLocs);
-        assert(numLocs == 0);
-        assert(locs == NULL);
-        DvFree(dv);
-
-        printf("Test passed!\n");
-    
-    }
 
     {///////////////////////////////////////////////////////////////////
-		printf("DvWhereCanTheyGo Test #2: Hunters' move\n");
+		printf("DvWhereCanTheyGo Test #1: Hunters' move\n");
 
 		char *trail = 
 			"GRO.... SLS.... HMN.... MNU....";			
@@ -465,6 +420,7 @@ int main(void)
 		int numLocs = -1;
 
 		PlaceId *locs = DvWhereCanTheyGo(dv, PLAYER_LORD_GODALMING, &numLocs);
+		printf("%d", numLocs);
 		assert(numLocs == 5);
 		sortPlaces(locs, numLocs);
 		assert(locs[0] == BARI);

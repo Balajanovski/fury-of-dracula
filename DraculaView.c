@@ -116,7 +116,7 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 	PlaceId *adjLocs = GvGetReachableByType(dv->dracInfo, PLAYER_DRACULA, DvGetRound(dv), 
 											currPlace(dv), true, false, true, &numMoves);
 	
-	int enPt = 0; PlaceId *validMoves = malloc(numMoves * sizeof(PlaceId*));
+	int enPt = 0; PlaceId *validMoves = malloc((numMoves + 2) * sizeof(PlaceId));
 	if (validMoves == NULL) {
 		fprintf(stderr, "Unable to allocate validMoves. Aborting...\n");
             exit(EXIT_FAILURE);
@@ -144,7 +144,6 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 	} 
 
 	if (veiled == NO) {
-		validMoves = realloc(validMoves, numMoves++ * sizeof(PlaceId*));
 		validMoves[enPt] = HIDE;
 		enPt++;
 	}
@@ -170,7 +169,7 @@ PlaceId *FilterDuplicates(DraculaView dv, PlaceId *adjLocs, int *numMoves)
 		return NULL;
 	}		
 
-	int enPt = 0; PlaceId *validMoves = malloc(*numMoves * sizeof(PlaceId*));
+	int enPt = 0; PlaceId *validMoves = malloc((*numMoves + 1) * sizeof(PlaceId));
 	if (validMoves == NULL) {
 		fprintf(stderr, "Unable to allocate validMoves. Aborting...\n");
             exit(EXIT_FAILURE);
@@ -196,8 +195,8 @@ PlaceId *FilterDuplicates(DraculaView dv, PlaceId *adjLocs, int *numMoves)
 		return NULL;
 	}
 
-	for(int i = 0; i < enPt; i++)
-		printf("%d ", validMoves[i]);
+	//for(int i = 0; i < enPt; i++)
+	//	printf("%d ", validMoves[i]);
 
 	*numMoves = enPt;
 	return validMoves;
