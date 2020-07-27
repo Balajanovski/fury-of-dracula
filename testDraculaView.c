@@ -420,7 +420,6 @@ int main(void)
 		int numLocs = -1;
 
 		PlaceId *locs = DvWhereCanTheyGo(dv, PLAYER_LORD_GODALMING, &numLocs);
-		printf("%d", numLocs);
 		assert(numLocs == 5);
 		sortPlaces(locs, numLocs);
 		assert(locs[0] == BARI);
@@ -453,7 +452,6 @@ int main(void)
 		free(locs);
 
 		locs = DvWhereCanTheyGo(dv, PLAYER_MINA_HARKER, &numLocs);
-		printf("%d\n", numLocs);
 		assert(numLocs == 6);
 		sortPlaces(locs, numLocs);
 		assert(locs[0] == FRANKFURT);
@@ -468,7 +466,7 @@ int main(void)
         printf("Test passed!\n");
 	}
 
-    {///////////////////////////////////////////////////////////////////
+    /* {///////////////////////////////////////////////////////////////////
         
 		printf("DvWhereCanTheyGoByType Test #1: Hunter has no options, everything false\n");
         
@@ -488,7 +486,7 @@ int main(void)
         DvFree(dv);
         printf("Test passed\n");
     
-    }
+    } */
     
     {///////////////////////////////////////////////////////////////////
         

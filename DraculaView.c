@@ -230,10 +230,6 @@ PlaceId *DvWhereCanIGoByType(DraculaView dv, bool road, bool boat,
 
 PlaceId *DvWhereCanTheyGo(DraculaView dv, Player player, int *numReturnedLocs) 
 {
-    if (DvGetPlayerLocation(dv, player) == NOWHERE) {
-        *numReturnedLocs = 0;
-        return NULL;
-    }
 	int adjusted_round = DvGetRound(dv) + (player < GvGetPlayer(dv->dracInfo));
 	if (player == PLAYER_DRACULA) {
 		return DvWhereCanIGo(dv, numReturnedLocs);
@@ -248,10 +244,6 @@ PlaceId *DvWhereCanTheyGoByType(DraculaView dv, Player player,
                                 int *numReturnedLocs) 
 {
 
-    if (DvGetPlayerLocation(dv, player) == NOWHERE) {
-        *numReturnedLocs = 0;
-        return NULL;
-    }
 	int adjusted_round = DvGetRound(dv) + (player < GvGetPlayer(dv->dracInfo));
     if (player == PLAYER_DRACULA) {
 		return DvWhereCanIGoByType(dv, road, boat, numReturnedLocs);
