@@ -600,5 +600,88 @@ int main(void)
 
 	}
 
+    {///////////////////////////////////////////////////////////////////
+		
+		printf("DvGetVampireLocation Test #1: Immature vampire remains\n");
+		
+		char *trail = 
+			"GBU.... SGE.... HBR.... MMU.... DPR.V.."
+            "GCO.... SGE.... HHA.... MMU.... DNUT..."
+			"GFR.... SGE.... HBR.... MMU.... DSTT...";
+
+		Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+		PlaceId vampLoc = DvGetVampireLocation(dv);
+		assert(vampLoc == PRAGUE);
+
+		DvFree(dv);
+        printf("Test passed\n");
+	}
+
+    {///////////////////////////////////////////////////////////////////
+		
+		printf("DvGetVampireLocation (DvGetHealth) Test #2: Immature vampire is dead and Dracula gets staked\n");
+		
+		char *trail = 
+			"GBU.... SGE.... HBR.... MMU.... DPR.V.."
+            "GCO.... SGE.... HPRVD.. MMU.... DNUT...";
+
+		Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+		PlaceId vampLoc = DvGetVampireLocation(dv);
+		assert(vampLoc == NOWHERE);
+		assert(DvGetHealth(dv, PLAYER_DRACULA) == GAME_START_BLOOD_POINTS - LIFE_LOSS_HUNTER_ENCOUNTER);
+
+		DvFree(dv);
+        printf("Test passed\n");
+	}
+
+    {///////////////////////////////////////////////////////////////////
+
+		printf("DvGetVampireLocation (DvGetScore) Test #3: Go forth vampire!\n");
+
+		char *trail =
+			"GBU.... SGE.... HBR.... MMU.... DPR.V.."
+			"GCO.... SGE.... HBR.... MMU.... DNUT..."
+			"GFR.... SGE.... HBR.... MMU.... DSTT..."
+			"GLI.... SGE.... HBR.... MMU.... DPAT..."
+			"GHA.... SGE.... HBR.... MMU.... DLET..."
+			"GNS.... SGE.... HBR.... MMU.... DEC...."
+			"GED.... SGE.... HBR.... MMU.... DPLT.V."
+			"GMN.... SGE.... HBR.... MMU.... DHIT.M.";
+
+		Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+		PlaceId vampLoc = DvGetVampireLocation(dv);
+		assert(vampLoc == NOWHERE);
+		assert(DvGetScore(dv) == GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 8) - SCORE_LOSS_VAMPIRE_MATURES);
+		printf("Test passed\n");
+
+	}
+
+	{///////////////////////////////////////////////////////////////////
+
+		printf("DvGetScore Test #1: No immature vampire, no score loss\n");
+		
+		char *trail =
+			"GBU.... SGE.... HBR.... MMU.... DPR.V.."
+			"GCO.... SGE.... HBR.... MMU.... DNUT..."
+			"GFR.... SGE.... HPRV... MMU.... DSTT..."
+			"GLI.... SGE.... HVI.... MMU.... DPAT..."
+			"GHA.... SGE.... HVI.... MMU.... DLET..."
+			"GNS.... SGE.... HVI.... MMU.... DEC...."
+			"GED.... SGE.... HVI.... MMU.... DPLT..."
+			"GMN.... SGE.... HVI.... MMU.... DHIT.M.";
+	
+		Message messages[5] = {};
+        DraculaView dv = DvNew(trail, messages);
+		PlaceId vampLoc = DvGetVampireLocation(dv);
+		assert(vampLoc == NOWHERE);
+		assert(DvGetScore(dv) == GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 8));
+
+		printf("Test passed\n");
+
+	}
+
 	return EXIT_SUCCESS;
 }

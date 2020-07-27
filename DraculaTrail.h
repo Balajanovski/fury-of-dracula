@@ -26,4 +26,6 @@ bool push_trail(DraculaTrail trail, DraculaMove move, DraculaMove* popped_move);
 // Retrieve the i-th latest move from the trail
 DraculaMove get_ith_latest_move_trail(DraculaTrail trail, int i);
 
+// Modifies the i-th lastest move from the trail
+void set_ith_latest_move_trail(DraculaTrail trail, int i, DraculaMove move);
 #endif //FURY_OF_DRACULA_DRACULATRAIL_H
