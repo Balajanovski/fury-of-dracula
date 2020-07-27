@@ -632,7 +632,7 @@ int main(void)
 
         char *trail2 = 
                 "GBU.... SGE.... HBR.... MMU.... DPR.V.."
-                "GCO.... SGE.... HPRV... MMU.... DNUT...";
+                "GCO.... SGE.... HPRVD.. MMU.... DNUT...";
         hv = HvNew(trail2, messages);
         loc = HvGetVampireLocation(hv);
         assert(loc == NOWHERE);

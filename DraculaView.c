@@ -154,9 +154,6 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves)
 		*numReturnedMoves = 0;
 		return NULL;
 	}
-	
-	//for(int i = 0; i < enPt; i++)
-	//	printf("%d ", validMoves[i]);
 
 	*numReturnedMoves = enPt;
 	return validMoves;

@@ -661,7 +661,7 @@ int main(void)
 
 	{///////////////////////////////////////////////////////////////////
 
-		printf("DvGetScore Test #1: No immature vampire, no score loss");
+		printf("DvGetScore Test #1: No immature vampire, no score loss\n");
 		
 		char *trail =
 			"GBU.... SGE.... HBR.... MMU.... DPR.V.."
@@ -677,7 +677,6 @@ int main(void)
         DraculaView dv = DvNew(trail, messages);
 		PlaceId vampLoc = DvGetVampireLocation(dv);
 		assert(vampLoc == NOWHERE);
-		printf("%d\n",DvGetScore(dv));
 		assert(DvGetScore(dv) == GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 8));
 
 		printf("Test passed\n");
