@@ -160,7 +160,7 @@ static PlaceId apply_hunter_encounters(GameView gv, Player curr_player, PlaceId 
             {       
                 int currRound = GvGetRound(gv);
                 DraculaMove vampKill;
-                vampKill.placed_vampire = 0; vampKill.placed_trap = 0;
+                vampKill.placed_vampire = false; vampKill.placed_trap = false;
                 for (int i = -1; i < currRound; i++) {
                     if (get_ith_latest_move_trail(gv->dracula_trail, i).placed_vampire == 1) {
                         set_ith_latest_move_trail(gv->dracula_trail, i, vampKill);
@@ -198,7 +198,9 @@ static PlaceId apply_dracula_encounters_and_actions(GameView gv, PlaceId locatio
 
     DraculaMove dracula_move;
     dracula_move.location = location;
-
+    dracula_move.placed_vampire = false;
+    dracula_move.placed_trap = false;
+    
     for (int i = 0; i < CHARACTERS_IN_DRACULA_ENCOUNTER; ++i) {
         switch(encounters_and_actions_str[i]) {
             case 'T':

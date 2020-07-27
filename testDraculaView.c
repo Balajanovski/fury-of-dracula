@@ -203,7 +203,7 @@ int main(void)
 	{///////////////////////////////////////////////////////////////////
 
 		printf("DvGetValidMoves Test #4: Able to move to start location\n");
-		printf("Process: Sixth slot in trail, a move becomes valid once more");
+		printf("Process: Sixth slot in trail, a move becomes valid once more\n");
 		char *trail =
 			"GST.... SST.... HST.... MST.... DMA.V.."
 			"GST.... SST.... HST.... MST.... DD1T..." 
@@ -293,11 +293,11 @@ int main(void)
 		printf("DvWhereCanIGo Test #2: Same Location, DB1 & HIDE used\n");
 		
 		char *trail =
-			"GGE.... SGE.... HGE.... MGE.... DKL.V.. "
-			"GGE.... SGE.... HGE.... MGE.... DD1T... "
-			"GGE.... SGE.... HGE.... MGE.... DBCT... "
-			"GGE.... SGE.... HGE.... MGE.... DHIT... "
-			"GGE.... SGE.... HGE.... MGE....";
+			"GGE.... SGE.... HGE.... MGE.... DKL.V.."
+			"GGE.... SGE.... HGE.... MGE.... DD1T..."
+			"GGE.... SGE.... HGE.... MGE.... DBCT..."
+			"GGE.... SGE.... HGE.... MGE.... DHIT..."
+			"GGE.... SGE.... HGE.... MGE.... ";
 		
 		Message messages[24] = {};
 		DraculaView dv = DvNew(trail, messages);
@@ -584,7 +584,8 @@ int main(void)
         DraculaView dv = DvNew(trail, messages);
 		PlaceId vampLoc = DvGetVampireLocation(dv);
 		assert(vampLoc == NOWHERE);
-		assert(DvGetHealth(dv, PLAYER_DRACULA) == GAME_START_BLOOD_POINTS - LIFE_LOSS_HUNTER_ENCOUNTER);
+		int currHealth =  GAME_START_BLOOD_POINTS - LIFE_LOSS_HUNTER_ENCOUNTER;
+		assert(DvGetHealth(dv, PLAYER_DRACULA) == currHealth);
 
 		DvFree(dv);
         printf("Test passed\n");
@@ -608,7 +609,9 @@ int main(void)
         DraculaView dv = DvNew(trail, messages);
 		PlaceId vampLoc = DvGetVampireLocation(dv);
 		assert(vampLoc == NOWHERE);
-		assert(DvGetScore(dv) == GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 8) - SCORE_LOSS_VAMPIRE_MATURES);
+		int gameScore = GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 8) - SCORE_LOSS_VAMPIRE_MATURES;
+		assert(DvGetScore(dv) == gameScore);
+		DvFree(dv);
 		printf("Test passed\n");
 
 	}
@@ -631,8 +634,9 @@ int main(void)
         DraculaView dv = DvNew(trail, messages);
 		PlaceId vampLoc = DvGetVampireLocation(dv);
 		assert(vampLoc == NOWHERE);
-		assert(DvGetScore(dv) == GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 8));
-
+		int gameScore = GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 8);
+		assert(DvGetScore(dv) == gameScore);
+		DvFree(dv);
 		printf("Test passed\n");
 
 	}
