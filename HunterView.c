@@ -22,6 +22,8 @@
 #include "Places.h"
 #include "Queue.h"
 
+#define BFS_UNVISITED_VALUE -1
+
 struct hunterView {
     GameView gv;
 
@@ -56,7 +58,6 @@ Round HvGetRound(HunterView hv) {
 	return GvGetRound(hv->gv);
 }
 
-
 Player HvGetPlayer(HunterView hv) {
 	assert (hv != NULL);
 	return GvGetPlayer(hv->gv);
@@ -87,12 +88,15 @@ PlaceId HvGetVampireLocation(HunterView hv) {
 // Utility Functions
 
 PlaceId HvGetLastKnownDraculaLocation(HunterView hv, Round *round) {
+    assert (hv != NULL);
+
 	return GvGetLatestRevealedDraculaPosition(hv->gv, round);
 }
 
-#define BFS_UNVISITED_VALUE -1
 PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
                              int *pathLength) {
+    assert (hv != NULL);
+
 	Queue path_queue = NewQueue();
 
 	int *visited = malloc(sizeof(int) * NUM_REAL_PLACES);
@@ -184,17 +188,23 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 // Making a Move
 
 PlaceId *HvWhereCanIGo(HunterView hv, int *numReturnedLocs) {
+    assert (hv != NULL);
+
     return HvWhereCanTheyGo(hv, HvGetPlayer(hv), numReturnedLocs);
 }
 
 PlaceId *HvWhereCanIGoByType(HunterView hv, bool road, bool rail,
                              bool boat, int *numReturnedLocs) {
+    assert (hv != NULL);
+
     return HvWhereCanTheyGoByType(hv, HvGetPlayer(hv), road, rail, boat,
                                   numReturnedLocs);
 }
 
 PlaceId *HvWhereCanTheyGo(HunterView hv, Player player,
                           int *numReturnedLocs) {
+    assert (hv != NULL);
+
     if (HvGetPlayerLocation(hv, player) == NOWHERE) {
         *numReturnedLocs = 0;
         return NULL;
@@ -208,6 +218,8 @@ PlaceId *HvWhereCanTheyGo(HunterView hv, Player player,
 PlaceId *HvWhereCanTheyGoByType(HunterView hv, Player player,
                                 bool road, bool rail, bool boat,
                                 int *numReturnedLocs) {
+    assert (hv != NULL);
+
     if (HvGetPlayerLocation(hv, player) == NOWHERE) {
         *numReturnedLocs = 0;
         return NULL;
@@ -217,9 +229,7 @@ PlaceId *HvWhereCanTheyGoByType(HunterView hv, Player player,
 }
 
 ////////////////////////////////////////////////////////////////////////
-// Your own interface functions
-
-// TODO
+// Custom interface functions
 
 
 

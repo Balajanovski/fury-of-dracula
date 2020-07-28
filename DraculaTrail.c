@@ -54,6 +54,8 @@ void free_trail(DraculaTrail trail) {
 }
 
 bool push_trail(DraculaTrail trail, DraculaMove move, DraculaMove* popped_move) {
+    assert(trail != NULL);
+
     bool move_popped = false;
     if (trail->num_elements == TRAIL_SIZE) {
         move_popped = true;
@@ -84,5 +86,7 @@ void set_ith_latest_move_trail(DraculaTrail trail, int i, DraculaMove move) {
 }
 
 int get_size_trail(DraculaTrail trail) {
+    assert(trail != NULL);
+
     return trail->num_elements;
 }

@@ -59,6 +59,8 @@ void free_move_set(MoveSet set) {
 }
 
 void insert_move_set(MoveSet set, PlaceId move) {
+    assert(set != NULL);
+
     if (!set->moves_set[map_move_to_index(move)]) {
         ++set->number_inserted_moves;
     }
@@ -67,6 +69,8 @@ void insert_move_set(MoveSet set, PlaceId move) {
 }
 
 void remove_move_set(MoveSet set, PlaceId move) {
+    assert(set != NULL);
+
     if (set->moves_set[map_move_to_index(move)]) {
         --set->number_inserted_moves;
     }
@@ -75,10 +79,14 @@ void remove_move_set(MoveSet set, PlaceId move) {
 }
 
 bool is_move_in_set(MoveSet set, PlaceId move) {
+    assert(set != NULL);
+
     return set->moves_set[map_move_to_index(move)];
 }
 
 PlaceId* convert_to_array_move_set(MoveSet set) {
+    assert(set != NULL);
+
     if (set->number_inserted_moves <= 0) {
         return NULL;
     }
@@ -95,5 +103,7 @@ PlaceId* convert_to_array_move_set(MoveSet set) {
 }
 
 int get_size_move_set(MoveSet set) {
+    assert(set != NULL);
+
     return set->number_inserted_moves;
 }

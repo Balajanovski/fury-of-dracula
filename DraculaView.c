@@ -122,6 +122,8 @@ PlaceId *DvGetTrapLocations(DraculaView dv, int *numTraps) {
 // Making a Move
 
 PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves) {
+    assert(dv != NULL);
+
     PlaceId drac_location = DvGetPlayerLocation(dv, PLAYER_DRACULA);
     if (drac_location == NOWHERE) {
         *numReturnedMoves = 0;
@@ -162,21 +164,25 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves) {
 }
 
 PlaceId *DvWhereCanIGo(DraculaView dv, int *numReturnedLocs) {
+    assert(dv != NULL);
 	return DvWhereCanIGoByType(dv, true, true, numReturnedLocs);
 }
 
 PlaceId *DvWhereCanIGoByType(DraculaView dv, bool road, bool boat,
                              int *numReturnedLocs) {
+    assert(dv != NULL);
 	return DvWhereCanTheyGoByType(dv, PLAYER_DRACULA, road, false, boat, numReturnedLocs);
 }
 
 PlaceId *DvWhereCanTheyGo(DraculaView dv, Player player, int *numReturnedLocs) {
+    assert(dv != NULL);
     return DvWhereCanTheyGoByType(dv, player, true, player != PLAYER_DRACULA, true, numReturnedLocs);
 }
 
 PlaceId *DvWhereCanTheyGoByType(DraculaView dv, Player player,
                                 bool road, bool rail, bool boat,
                                 int *numReturnedLocs) {
+    assert(dv != NULL);
     if (DvGetPlayerLocation(dv, player) == NOWHERE) {
         *numReturnedLocs = 0;
         return NULL;
