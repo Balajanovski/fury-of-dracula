@@ -132,7 +132,14 @@ kNode *add_child(kNode *k, int value) {
 void push_back_sibling_array(kNode *node, int value) {
     if (node->size >= node->capacity) {
         node->capacity *= 2;
-        node->sibling = realloc(node->sibling, sizeof(kNode) * node->capacity);
+
+        struct kNode* realloced_sibling_arr = realloc(node->sibling, sizeof(kNode) * node->capacity);
+        if (realloced_sibling_arr != NULL) {
+            node->sibling = realloced_sibling_arr;
+        } else {
+            fprintf(stderr, "Unable to reallocate kTree sibling array. Aborting...\n");
+            exit(EXIT_FAILURE);
+        }
     }
     
     node->sibling[node->size++] = *add_new_node(value);

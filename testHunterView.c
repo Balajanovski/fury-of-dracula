@@ -457,6 +457,7 @@ int main(void)
         int numLocs = -1;
         PlaceId *locs = HvWhereCanTheyGoByType(hv, PLAYER_DRACULA,
                                                true, false, false, &numLocs);
+
         assert(numLocs == 5);
         sortPlaces(locs, numLocs);
         assert(locs[0] == BELGRADE);

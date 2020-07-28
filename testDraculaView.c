@@ -137,7 +137,7 @@ int main(void)
 	}
 
 	{///////////////////////////////////////////////////////////////////
-	
+
 		printf("DvGetValidMoves Test #1: No moves yet \n");
 		
 		char *trail =
@@ -408,7 +408,7 @@ int main(void)
     }
 
 	{///////////////////////////////////////////////////////////////////
-		
+
 		printf("DvWhereCanIGo Test #5: St Joseph? No thank you.\n");
         
 		char *trail = 
@@ -709,17 +709,17 @@ int main(void)
 	}
 
 	{///////////////////////////////////////////////////////////////////
-		
+
 		printf("DvGetTrapLocations (DvVampireLocation & DvGetHealth & DvGetScore) Test: Triple trap surprise\n");
-		
+
 		char *trail =
 			"GTO.... SGE.... HBR.... MBC.... DMI.V.."
 			"GBO.... SPA.... HLI.... MGA.... DVET..."
 			"GNA.... SST.... HFR.... MCN.... DHIT..."
 			"GNA.... SMU.... HLI.... MVR.... DD1T..."
 			"GNA.... SVETTTD HLI.... MVR.... DFLT...";
-	 
-		Message messages[] = {			
+
+		Message messages[] = {
 			"Hello", "Goodbye", "Stuff", "...", "Mwahahah",
 			"Aha!", "", "", ""};
 		DraculaView dv = DvNew(trail, messages);
