@@ -86,7 +86,7 @@ int main(void)
 
 	{///////////////////////////////////////////////////////////////////
 	
-		printf("Test for Dracula leaving minions 1\n");
+		printf("DvGetTrapLocations (DvGetVampireLocation) Test #1: Dracula leaving his 'devices'\n");
 
 		char *trail =
 			"GGE.... SGE.... HGE.... MGE.... DED.V.. "
@@ -109,6 +109,30 @@ int main(void)
 		assert(traps[2] == MANCHESTER);
 		free(traps);
 		
+		printf("Test passed!\n");
+		DvFree(dv);
+	}
+
+	{///////////////////////////////////////////////////////////////////
+		
+		printf("DvGetTrapLocations (DvGetVampireLocation) Test: Triple trap city\n");
+	
+		char *trail =
+			"GTO.... SGE.... HBR.... MBC.... DMI.V.."
+			"GBO.... SPA.... HLI.... MGA.... DVET..."
+			"GNA.... SST.... HFR.... MCN.... DHIT..."
+			"GNA.... SMU.... HLI.... MVR.... DD1T...";
+
+		Message messages[5] = {};
+		DraculaView dv = DvNew(trail, messages);
+		int numTraps = -1;
+		PlaceId *traps = DvGetTrapLocations(dv, &numTraps);
+		assert(numTraps == 3);
+		assert(traps[0] == VENICE);
+		assert(traps[1] == VENICE);
+		assert(traps[2] == VENICE);
+		free(traps);
+
 		printf("Test passed!\n");
 		DvFree(dv);
 	}
@@ -407,7 +431,7 @@ int main(void)
 		DvFree(dv);
 		printf("Test passed\n");
 	}
-	{///////////////////////////////////////////////////////////////////
+/*	{///////////////////////////////////////////////////////////////////
         
         printf("DvWhereCanTheyGo Test #1: No moves made by any players\n");
         
@@ -451,7 +475,7 @@ int main(void)
 
         printf("Test passed!\n");
     
-    }
+    } */
 
     {///////////////////////////////////////////////////////////////////
 		printf("DvWhereCanTheyGo Test #2: Hunters' move\n");
@@ -497,7 +521,6 @@ int main(void)
 		free(locs);
 
 		locs = DvWhereCanTheyGo(dv, PLAYER_MINA_HARKER, &numLocs);
-		printf("%d\n", numLocs);
 		assert(numLocs == 6);
 		sortPlaces(locs, numLocs);
 		assert(locs[0] == FRANKFURT);
@@ -512,7 +535,7 @@ int main(void)
         printf("Test passed!\n");
 	}
 
-    {///////////////////////////////////////////////////////////////////
+   /* {///////////////////////////////////////////////////////////////////
         
 		printf("DvWhereCanTheyGoByType Test #1: Hunter has no options, everything false\n");
         
@@ -532,7 +555,7 @@ int main(void)
         DvFree(dv);
         printf("Test passed\n");
     
-    }
+    } */
     
     {///////////////////////////////////////////////////////////////////
         
@@ -655,13 +678,15 @@ int main(void)
 		PlaceId vampLoc = DvGetVampireLocation(dv);
 		assert(vampLoc == NOWHERE);
 		assert(DvGetScore(dv) == GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 8) - SCORE_LOSS_VAMPIRE_MATURES);
+
+		DvFree(dv);
 		printf("Test passed\n");
 
 	}
 
 	{///////////////////////////////////////////////////////////////////
 
-		printf("DvGetScore Test #1: No immature vampire, no score loss\n");
+		printf("DvGetScore (DvGetVampireLocation) Test: No immature vampire, no score loss\n");
 		
 		char *trail =
 			"GBU.... SGE.... HBR.... MMU.... DPR.V.."
@@ -679,8 +704,38 @@ int main(void)
 		assert(vampLoc == NOWHERE);
 		assert(DvGetScore(dv) == GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 8));
 
+		DvFree(dv);
 		printf("Test passed\n");
+	}
 
+	{///////////////////////////////////////////////////////////////////
+		
+		printf("DvGetTrapLocations (DvVampireLocation & DvGetHealth & DvGetScore) Test: Triple trap surprise\n");
+		
+		char *trail =
+			"GTO.... SGE.... HBR.... MBC.... DMI.V.."
+			"GBO.... SPA.... HLI.... MGA.... DVET..."
+			"GNA.... SST.... HFR.... MCN.... DHIT..."
+			"GNA.... SMU.... HLI.... MVR.... DD1T..."
+			"GNA.... SVETTTD HLI.... MVR.... DFLT...";
+	 
+		Message messages[] = {			
+			"Hello", "Goodbye", "Stuff", "...", "Mwahahah",
+			"Aha!", "", "", ""};
+		DraculaView dv = DvNew(trail, messages);
+		int numTraps = -1;
+		PlaceId *traps = DvGetTrapLocations(dv, &numTraps);
+		assert(numTraps == 1);
+		assert(traps[0] == FLORENCE);
+
+		free(traps);
+
+		assert(DvGetHealth(dv, PLAYER_DR_SEWARD) <= 0);
+		assert(DvGetPlayerLocation(dv, PLAYER_DR_SEWARD) == ST_JOSEPH_AND_ST_MARY);
+		assert(DvGetScore(dv) == GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 5) - SCORE_LOSS_HUNTER_HOSPITAL);
+
+		printf("Test passed!\n");
+		DvFree(dv);
 	}
 
 	return EXIT_SUCCESS;
