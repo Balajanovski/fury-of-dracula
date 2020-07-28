@@ -36,7 +36,6 @@ struct gameView {
 	LocationDynamicArray player_move_histories[NUM_PLAYERS];
 
     PlaceId vampire_location;
-	PlaceId trap_locations[TRAIL_SIZE];
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -71,9 +70,6 @@ static inline void set_default_gamestate(GameView gv) {
 
     // Encounter initialisation
     gv->vampire_location = NOWHERE;
-    for (int i = 0; i < TRAIL_SIZE; ++i) {
-        gv->trap_locations[i] = NOWHERE;
-    }
 }
 
 static Player player_id_from_move_string(char* move_string) {
@@ -156,12 +152,14 @@ static PlaceId apply_hunter_encounters(GameView gv, Player curr_player, PlaceId 
                 break;
             case 'V':
             {
-                DraculaMove vamp_kill;
                 int trail_size = get_size_trail(gv->dracula_trail);
-                vamp_kill.placed_vampire = 0; vamp_kill.placed_trap = 0;
                 for (int j = 0; j < trail_size; ++j) {
-                    if (get_ith_latest_move_trail(gv->dracula_trail, j).placed_vampire) {
-                        set_ith_latest_move_trail(gv->dracula_trail, j, vamp_kill);
+                    DraculaMove ith_latest_trail_move = get_ith_latest_move_trail(gv->dracula_trail, j);
+
+                    if (ith_latest_trail_move.placed_vampire) {
+                        ith_latest_trail_move.placed_vampire = false;
+
+                        set_ith_latest_move_trail(gv->dracula_trail, j, ith_latest_trail_move);
                         break;
                     }
                 }           
