@@ -27,8 +27,7 @@ int main(void)
 {
 	{///////////////////////////////////////////////////////////////////
 	
-		printf("Test for basic functions, "
-			   "just before Dracula's first move\n");
+		printf("Basic functions; just before Dracula's first move\n");
 
 		char *trail =
 			"GST.... SAO.... HZU.... MBB....";
@@ -59,7 +58,7 @@ int main(void)
 
 	{///////////////////////////////////////////////////////////////////
 	
-		printf("Test for encountering Dracula\n");
+		printf("Encountering Dracula\n");
 
 		char *trail =
 			"GST.... SAO.... HCD.... MAO.... DGE.V.. "
@@ -115,7 +114,7 @@ int main(void)
 
 	{///////////////////////////////////////////////////////////////////
 		
-		printf("DvGetTrapLocations (DvGetVampireLocation) Test: Triple trap city\n");
+		printf("DvGetTrapLocations (DvGetVampireLocation) Test #2: Triple trap city\n");
 	
 		char *trail =
 			"GTO.... SGE.... HBR.... MBC.... DMI.V.."
@@ -409,6 +408,7 @@ int main(void)
     }
 
 	{///////////////////////////////////////////////////////////////////
+		
 		printf("DvWhereCanIGo Test #5: St Joseph? No thank you.\n");
         
 		char *trail = 
@@ -431,7 +431,7 @@ int main(void)
 		DvFree(dv);
 		printf("Test passed\n");
 	}
-/*	{///////////////////////////////////////////////////////////////////
+	{///////////////////////////////////////////////////////////////////
         
         printf("DvWhereCanTheyGo Test #1: No moves made by any players\n");
         
@@ -475,7 +475,7 @@ int main(void)
 
         printf("Test passed!\n");
     
-    } */
+    }
 
     {///////////////////////////////////////////////////////////////////
 		printf("DvWhereCanTheyGo Test #2: Hunters' move\n");
@@ -535,7 +535,7 @@ int main(void)
         printf("Test passed!\n");
 	}
 
-   /* {///////////////////////////////////////////////////////////////////
+    {///////////////////////////////////////////////////////////////////
         
 		printf("DvWhereCanTheyGoByType Test #1: Hunter has no options, everything false\n");
         
@@ -555,7 +555,7 @@ int main(void)
         DvFree(dv);
         printf("Test passed\n");
     
-    } */
+    }
     
     {///////////////////////////////////////////////////////////////////
         
