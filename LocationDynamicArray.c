@@ -54,7 +54,14 @@ PlaceId ith_latest_location_location_dynamic_array(LocationDynamicArray lda, int
 void push_back_location_dynamic_array(LocationDynamicArray lda, PlaceId location) {
     if (lda->history_size >= lda->history_capacity) {
         lda->history_capacity *= 2;
-        lda->past_locations = (PlaceId*) realloc(lda->past_locations, sizeof(PlaceId) * lda->history_capacity);
+
+        PlaceId* realloced_past_locations = (PlaceId*) realloc(lda->past_locations, sizeof(PlaceId) * lda->history_capacity);
+        if (realloced_past_locations == NULL) {
+            fprintf(stderr, "Unable to realloc in LocationDynamicArray.c. Aborting...\n");
+            exit(EXIT_FAILURE);
+        } else {
+            lda->past_locations = realloced_past_locations;
+        }
     }
 
     lda->past_locations[lda->history_size++] = location;

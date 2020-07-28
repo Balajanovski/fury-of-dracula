@@ -497,7 +497,6 @@ int main(void)
 		free(locs);
 
 		locs = DvWhereCanTheyGo(dv, PLAYER_MINA_HARKER, &numLocs);
-		printf("%d\n", numLocs);
 		assert(numLocs == 6);
 		sortPlaces(locs, numLocs);
 		assert(locs[0] == FRANKFURT);
@@ -655,6 +654,8 @@ int main(void)
 		PlaceId vampLoc = DvGetVampireLocation(dv);
 		assert(vampLoc == NOWHERE);
 		assert(DvGetScore(dv) == GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 8) - SCORE_LOSS_VAMPIRE_MATURES);
+
+		DvFree(dv);
 		printf("Test passed\n");
 
 	}
@@ -679,8 +680,8 @@ int main(void)
 		assert(vampLoc == NOWHERE);
 		assert(DvGetScore(dv) == GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 8));
 
+		DvFree(dv);
 		printf("Test passed\n");
-
 	}
 
 	return EXIT_SUCCESS;

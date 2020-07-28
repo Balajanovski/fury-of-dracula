@@ -457,6 +457,7 @@ int main(void)
         int numLocs = -1;
         PlaceId *locs = HvWhereCanTheyGoByType(hv, PLAYER_DRACULA,
                                                true, false, false, &numLocs);
+
         assert(numLocs == 5);
         sortPlaces(locs, numLocs);
         assert(locs[0] == BELGRADE);
@@ -643,8 +644,8 @@ int main(void)
     {///////////////////////////////////////////////////////////////////
         printf("HvGetVampireLocation Test #2: Immature vampire not encountered\n");
         char *trail = 
-                "GBU.... SGE.... HBR.... MMU.... DPR.V.."
-                "GCO.... SGE.... HBR.... MMU.... DNUT...";
+                "GBU.... SGE.... HBR.... MMU.... DC?.V.."
+                "GCO.... SGE.... HBR.... MMU.... DC?T...";
 
         Message messages[5] = {};
         HunterView hv = HvNew(trail, messages);

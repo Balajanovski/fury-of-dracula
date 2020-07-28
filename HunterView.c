@@ -93,7 +93,7 @@ PlaceId HvGetLastKnownDraculaLocation(HunterView hv, Round *round) {
 #define BFS_UNVISITED_VALUE -1
 PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
                              int *pathLength) {
-	Queue Path = NewQueue();
+	Queue path_queue = NewQueue();
 
 	int *visited = malloc(sizeof(int) * NUM_REAL_PLACES);
 	for (int i = 0; i < NUM_REAL_PLACES; ++i) {
@@ -103,14 +103,14 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 	// Starting location
 	PlaceId source = GvGetPlayerLocation(hv->gv, hunter);
 	visited[source] = source;
-	AddtoQueue(Path, source);
+	AddtoQueue(path_queue, source);
 
 	Round old_round_number = GvGetRound(hv->gv);   // Stored for resetting after BFS
 	Round current_round_number = old_round_number; // This fake round number will be updated as we simulate the hunter's movements in the BFS
 
 	bool found = false;
-	while (!found && QueueSize(Path) > 0) {
-	    int queue_size = QueueSize(Path);
+	while (!found && QueueSize(path_queue) > 0) {
+	    int queue_size = QueueSize(path_queue);
 
 	    // The queue size at the end of each of these iterations in BFS
 	    // is guaranteed to be the size of the next "level" or "layer"
@@ -119,26 +119,28 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 	    // So, at the end of each of these BFS iterations, we know we have gone to the next level
 	    // so we can increment the round number (TEMPORARILY)
 	    for (int q_level_index = 0; q_level_index < queue_size; ++q_level_index) {
-            PlaceId currentLocation = RemovefromQueue(Path);
+            PlaceId currentLocation = RemovefromQueue(path_queue);
 
             if (currentLocation == dest) {
                 // Early exit once the destination is found
                 found = true;
                 break;
             } else {
-                // Get locations adjactent to the hunter
-                int numberOfAdjacentLocations;
-                PlaceId *canGo = GvGetReachable(hv->gv, hunter, current_round_number, currentLocation, &numberOfAdjacentLocations);
+                // Get locations adjacent to the hunter
+                int num_adjacent_locations;
+                PlaceId *can_go = GvGetReachable(hv->gv, hunter, current_round_number, currentLocation, &num_adjacent_locations);
 
                 // Add to the queue all adjacent unvisited locations
-                for (int i = 0; i < numberOfAdjacentLocations; ++i) {
-                    PlaceId adjacentLocation = canGo[i];
+                for (int i = 0; i < num_adjacent_locations; ++i) {
+                    PlaceId adjacentLocation = can_go[i];
 
                     if (visited[adjacentLocation] == BFS_UNVISITED_VALUE) {
                         visited[adjacentLocation] = currentLocation;
-                        AddtoQueue(Path, adjacentLocation);
+                        AddtoQueue(path_queue, adjacentLocation);
                     }
                 }
+
+                free(can_go);
             }
 	    }
 
@@ -171,7 +173,9 @@ PlaceId *HvGetShortestPathTo(HunterView hv, Player hunter, PlaceId dest,
 	    p++;
 	}
 
+	free(reverse_path);
 	free(visited);
+	FreeQueue(path_queue);
 
 	return _path;
 }
@@ -191,11 +195,12 @@ PlaceId *HvWhereCanIGoByType(HunterView hv, bool road, bool rail,
 
 PlaceId *HvWhereCanTheyGo(HunterView hv, Player player,
                           int *numReturnedLocs) {
-                          
     if (HvGetPlayerLocation(hv, player) == NOWHERE) {
         *numReturnedLocs = 0;
         return NULL;
-    }               
+    }
+
+
     int adjusted_round = HvGetRound(hv) + (player < HvGetPlayer(hv));
     return GvGetReachable(hv->gv, player, adjusted_round, HvGetPlayerLocation(hv, player), numReturnedLocs);
 }
@@ -203,7 +208,6 @@ PlaceId *HvWhereCanTheyGo(HunterView hv, Player player,
 PlaceId *HvWhereCanTheyGoByType(HunterView hv, Player player,
                                 bool road, bool rail, bool boat,
                                 int *numReturnedLocs) {
-                                
     if (HvGetPlayerLocation(hv, player) == NOWHERE) {
         *numReturnedLocs = 0;
         return NULL;

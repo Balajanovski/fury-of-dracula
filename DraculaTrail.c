@@ -74,12 +74,15 @@ DraculaMove get_ith_latest_move_trail(DraculaTrail trail, int i) {
     assert(trail != NULL);
     assert(i < trail->num_elements);
 
-    return trail->queue_array[(trail->queue_start_index + (TRAIL_SIZE - i - 1)) % TRAIL_SIZE];
+    return trail->queue_array[(trail->queue_start_index + (trail->num_elements - i - 1)) % TRAIL_SIZE];
 }
 
 void set_ith_latest_move_trail(DraculaTrail trail, int i, DraculaMove move) {
     assert(trail != NULL);
     assert(i < trail->num_elements);
-    trail->queue_array[(trail->queue_start_index + (TRAIL_SIZE - i - 1)) % TRAIL_SIZE] = move;
+    trail->queue_array[(trail->queue_start_index + (trail->num_elements - i - 1)) % TRAIL_SIZE] = move;
 }
 
+int get_size_trail(DraculaTrail trail) {
+    return trail->num_elements;
+}

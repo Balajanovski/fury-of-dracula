@@ -14,6 +14,7 @@ typedef struct {
     bool placed_trap;
     bool placed_vampire;
     PlaceId location;
+    PlaceId move;
 } DraculaMove;
 
 #endif //FURY_OF_DRACULA_DRACULAMOVE_H
