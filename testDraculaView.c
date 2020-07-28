@@ -86,7 +86,7 @@ int main(void)
 
 	{///////////////////////////////////////////////////////////////////
 	
-		printf("Test for Dracula leaving minions 1\n");
+		printf("DvGetTrapLocations (DvGetVampireLocation) Test #1: Dracula leaving his 'devices'\n");
 
 		char *trail =
 			"GGE.... SGE.... HGE.... MGE.... DED.V.. "
@@ -114,7 +114,31 @@ int main(void)
 	}
 
 	{///////////////////////////////////////////////////////////////////
-	
+
+		printf("DvGetTrapLocations (DvGetVampireLocation) Test: Triple trap city\n");
+
+		char *trail =
+			"GTO.... SGE.... HBR.... MBC.... DMI.V.."
+			"GBO.... SPA.... HLI.... MGA.... DVET..."
+			"GNA.... SST.... HFR.... MCN.... DHIT..."
+			"GNA.... SMU.... HLI.... MVR.... DD1T...";
+
+		Message messages[5] = {};
+		DraculaView dv = DvNew(trail, messages);
+		int numTraps = -1;
+		PlaceId *traps = DvGetTrapLocations(dv, &numTraps);
+		assert(numTraps == 3);
+		assert(traps[0] == VENICE);
+		assert(traps[1] == VENICE);
+		assert(traps[2] == VENICE);
+		free(traps);
+
+		printf("Test passed!\n");
+		DvFree(dv);
+	}
+
+	{///////////////////////////////////////////////////////////////////
+
 		printf("DvGetValidMoves Test #1: No moves yet \n");
 		
 		char *trail =
@@ -662,7 +686,7 @@ int main(void)
 
 	{///////////////////////////////////////////////////////////////////
 
-		printf("DvGetScore Test #1: No immature vampire, no score loss\n");
+		printf("DvGetScore (DvGetVampireLocation) Test: No immature vampire, no score loss\n");
 		
 		char *trail =
 			"GBU.... SGE.... HBR.... MMU.... DPR.V.."
@@ -682,6 +706,36 @@ int main(void)
 
 		DvFree(dv);
 		printf("Test passed\n");
+	}
+
+	{///////////////////////////////////////////////////////////////////
+
+		printf("DvGetTrapLocations (DvVampireLocation & DvGetHealth & DvGetScore) Test: Triple trap surprise\n");
+
+		char *trail =
+			"GTO.... SGE.... HBR.... MBC.... DMI.V.."
+			"GBO.... SPA.... HLI.... MGA.... DVET..."
+			"GNA.... SST.... HFR.... MCN.... DHIT..."
+			"GNA.... SMU.... HLI.... MVR.... DD1T..."
+			"GNA.... SVETTTD HLI.... MVR.... DFLT...";
+
+		Message messages[] = {
+			"Hello", "Goodbye", "Stuff", "...", "Mwahahah",
+			"Aha!", "", "", ""};
+		DraculaView dv = DvNew(trail, messages);
+		int numTraps = -1;
+		PlaceId *traps = DvGetTrapLocations(dv, &numTraps);
+		assert(numTraps == 1);
+		assert(traps[0] == FLORENCE);
+
+		free(traps);
+
+		assert(DvGetHealth(dv, PLAYER_DR_SEWARD) <= 0);
+		assert(DvGetPlayerLocation(dv, PLAYER_DR_SEWARD) == ST_JOSEPH_AND_ST_MARY);
+		assert(DvGetScore(dv) == GAME_START_SCORE - (SCORE_LOSS_DRACULA_TURN * 5) - SCORE_LOSS_HUNTER_HOSPITAL);
+
+		printf("Test passed!\n");
+		DvFree(dv);
 	}
 
 	return EXIT_SUCCESS;
