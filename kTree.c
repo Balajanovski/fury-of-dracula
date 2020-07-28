@@ -8,15 +8,15 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "kTree.h"
+
 #define DEFAULT_CAPACITY 10
 
 struct kNode {
-    int value;
-    struct kNode *sibling;
-    struct kNode *child;
+    KTREE_NODE_CONTENTS value;
+    struct kNode **children;
     int size;
     int capacity;
-    
 };
 
 struct kTree {
@@ -26,122 +26,99 @@ struct kTree {
 typedef struct kNode kNode;
 typedef struct kTree kTree;
 
-kNode *add_new_node(int);
-kNode *add_new_sibling(kNode *, int);
-kNode *add_child(kNode *, int);
-void push_back_sibling_array(kNode *node, int value);
-kTree *create_new_tree();
-void freeTree (struct kTree *old);
-void freeNode (struct kNode *old);
-
-
-
-int main (void) {
-    kTree *new = create_new_tree();
-    new->root = add_new_node(5);
-    add_child(new->root, 6);
-    add_new_sibling(new->root->child, 7);
-    add_new_sibling(new->root->child, 8);
-    add_new_sibling(new->root->child, 9);
-    add_new_sibling(new->root->child, 10);
-    add_new_sibling(new->root->child, 11);
-    add_new_sibling(new->root->child, 12);
-    add_new_sibling(new->root->child, 13);
-    add_new_sibling(new->root->child, 14);
-    add_new_sibling(new->root->child, 15);
-    add_new_sibling(new->root->child, 16);
-    add_new_sibling(new->root->child, 17);
-    add_new_sibling(new->root->child, 18);
-    add_new_sibling(new->root->child, 19);
-    add_new_sibling(new->root->child, 20);
-    add_new_sibling(new->root->child, 21);
-    add_new_sibling(new->root->child, 22);
-    add_new_sibling(new->root->child, 23);
-    add_new_sibling(new->root->child, 24);
-    add_new_sibling(new->root->child, 25);
-    
-    printf("%d\n", new->root->child->value);
-    printf("%d\n", new->root->value);
-    printf("%d\n", new->root->child->sibling[13].value);
-    
-    freeTree(new);
-    
-    return 0;
-}
-
 kTree *create_new_tree() {
     kTree *new = malloc(sizeof(kTree));
     new->root = NULL;
     return new;
-
 }
 
-void freeNode (struct kNode *old) {
+void free_tree_node(Node old) {
     assert(old != NULL);
-    assert(old->sibling != NULL);
-    free(old->sibling);
+    assert(old->children != NULL);
+    free(old->children);
     free(old);
-    return;
 }
 
-void freeTree (struct kTree *old) {
+static void recursively_free_nodes(Node node) {
+    if (node == NULL) {
+        return;
+    }
+
+    for (int i = 0; i < node->size; ++i) {
+        recursively_free_nodes(node->children[i]);
+    }
+    free_tree_node(node);
+}
+
+void free_tree(Tree old) {
     assert (old != NULL);
-    assert (old->root != NULL);
-    freeNode(old->root);
+
+    recursively_free_nodes(old->root);
     free(old);
-    return;
 }
 
-kNode *add_new_node(int value) {
-    kNode *new = malloc(sizeof(kNode));
+Node create_new_node_tree(KTREE_NODE_CONTENTS value) {
+    Node new = malloc(sizeof(struct kNode));
+    if (new == NULL) {
+        fprintf(stderr, "Unable to allocate new tree node. Aborting...\n");
+        exit(EXIT_FAILURE);
+    }
     
     new->value = value;
-    new->sibling = malloc(sizeof(kNode) * DEFAULT_CAPACITY);
-    new->child = NULL;
+    new->children = malloc(sizeof(Node) * DEFAULT_CAPACITY);
+    if (new->children == NULL) {
+        fprintf(stderr, "Unable to allocate new tree node children. Aborting...\n");
+        exit(EXIT_FAILURE);
+    }
+
     new->capacity = DEFAULT_CAPACITY;
     new->size = 0;
     
     return new;
-
 }
 
-kNode *add_new_sibling(kNode *k, int value) {
-    assert (k != NULL);
-    
-    
-    if (k->size >= k->capacity) {
-        push_back_sibling_array(k, value);
-        return &k->sibling[k->size];
-    } else {
-        k->sibling[k->size] = *add_new_node(value);
-        k->size++;
-        return &k->sibling[k->size-1];
+void set_root_tree(Tree t, Node n) {
+    assert(t != NULL);
+
+    if (t->root != NULL) {
+        recursively_free_nodes(t->root);
     }
+
+    t->root = n;
 }
 
-kNode *add_child(kNode *k, int value) {
-    assert (k != NULL);
-    
-    if (k->child == NULL) {
-        return (k->child = add_new_node(value));
-    } else {
-        return add_new_sibling(k->child, value);
-    }
-}
+void add_new_child_tree(Node parent, Node child) {
+    assert(parent != NULL);
+    if (parent->size >= parent->capacity) {
+        parent->capacity *= 2;
 
-void push_back_sibling_array(kNode *node, int value) {
-    if (node->size >= node->capacity) {
-        node->capacity *= 2;
-
-        struct kNode* realloced_sibling_arr = realloc(node->sibling, sizeof(kNode) * node->capacity);
-        if (realloced_sibling_arr != NULL) {
-            node->sibling = realloced_sibling_arr;
-        } else {
-            fprintf(stderr, "Unable to reallocate kTree sibling array. Aborting...\n");
+        Node* realloced_children = (Node*) realloc(parent->children, sizeof(Node) * parent->capacity);
+        if (realloced_children == NULL) {
+            fprintf(stderr, "Unable to realloc children. Aborting...\n");
             exit(EXIT_FAILURE);
         }
+        parent->children = realloced_children;
     }
-    
-    node->sibling[node->size++] = *add_new_node(value);
+
+    parent->children[parent->size++] = child;
 }
 
+inline Node get_root_tree(Tree tree) {
+    assert(tree != NULL);
+    return tree->root;
+}
+
+inline Node* get_children_tree(Node node) {
+    assert(node != NULL);
+    return node->children;
+}
+
+inline int get_num_children_tree(Node node) {
+    assert(node != NULL);
+    return node->size;
+}
+
+inline KTREE_NODE_CONTENTS get_node_value_tree(Node n) {
+    assert(n != NULL);
+    return n->value;
+}

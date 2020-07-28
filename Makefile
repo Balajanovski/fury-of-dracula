@@ -11,9 +11,24 @@
 
 CC = gcc
 CFLAGS = -Wall -Werror -g
-BINS = testGameView testHunterView testDraculaView testMap
+BINS = testGameView testHunterView testDraculaView testMap dracula hunter testKTree
+
+OBJS = GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o Queue.o MoveSet.o kTree.o
+
+LIBS =
 
 all: $(BINS)
+
+dracula: playerDracula.o dracula.o DraculaView.o  $(OBJS) $(LIBS)
+hunter: playerHunter.o hunter.o HunterView.o $(OBJS) $(LIBS)
+
+playerDracula.o: player.c dracula.h Game.h DraculaView.h GameView.h Places.h
+	$(CC) $(CFLAGS) -DI_AM_DRACULA -c $< -o $@
+playerHunter.o: player.c hunter.h Game.h HunterView.h GameView.h Places.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+testKTree: kTree.o
+testKTree.o: kTree.o
 
 testGameView: testGameView.o testUtils.o GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o Queue.o MoveSet.o
 testGameView.o: testGameView.c GameView.h Map.h Places.h Game.h DraculaTrail.h
@@ -37,6 +52,7 @@ DraculaTrail.o: DraculaTrail.c DraculaTrail.h Places.h DraculaMove.h
 LocationDynamicArray.o: LocationDynamicArray.c LocationDynamicArray.h Places.h
 Queue.o: Queue.c Queue.h Places.h
 MoveSet.o: MoveSet.c MoveSet.h Places.h
+kTree.o: kTree.c kTree.h
 
 .PHONY: clean
 clean:

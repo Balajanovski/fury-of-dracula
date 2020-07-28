@@ -12,9 +12,9 @@
 #include "dracula.h"
 #include "DraculaView.h"
 #include "Game.h"
+#include "kTree.h"
 
-void decideDraculaMove(DraculaView dv)
-{
+void decideDraculaMove(DraculaView dv) {
 	// TODO: Replace this with something better!
 	registerBestPlay("CD", "Mwahahahaha");
 }
