@@ -14,6 +14,25 @@
 #include "Game.h"
 #include "kTree.h"
 
+/*
+typedef struct {
+    DraculaView current_view;
+} GameState;
+
+static void custom_dracula_view_free(void* value) {
+    DvFree((DraculaView) value);
+}
+
+static Item create_game_state_item(DraculaView value) {
+    Item new_item;
+    new_item.data = malloc(sizeof(DraculaView*));
+    *((DraculaView*) new_item.data) = value;
+    new_item.custom_free = &custom_dracula_view_free;
+
+    return new_item;
+}
+ */
+
 void decideDraculaMove(DraculaView dv) {
 	// TODO: Replace this with something better!
 	registerBestPlay("CD", "Mwahahahaha");

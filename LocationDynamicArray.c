@@ -21,10 +21,14 @@ struct locationDynamicArray {
 
 
 LocationDynamicArray new_location_dynamic_array() {
+    return new_location_dynamic_array_with_capacity(DEFAULT_CAPACITY);
+}
+
+LocationDynamicArray new_location_dynamic_array_with_capacity(int capacity) {
     LocationDynamicArray new_lh = (LocationDynamicArray) malloc(sizeof(struct locationDynamicArray));
-    new_lh->history_capacity = DEFAULT_CAPACITY;
+    new_lh->history_capacity = capacity;
     new_lh->history_size = 0;
-    new_lh->past_locations = (PlaceId*) malloc(sizeof(PlaceId) * DEFAULT_CAPACITY);
+    new_lh->past_locations = (PlaceId*) malloc(sizeof(PlaceId) * capacity);
 
     return new_lh;
 }
@@ -141,4 +145,19 @@ void extend_location_dynamic_array_raw(LocationDynamicArray lhs, PlaceId* rhs, i
     for (int i = 0; i < size; ++i) {
         push_back_location_dynamic_array(lhs, rhs[i]);
     }
+}
+
+LocationDynamicArray make_copy_location_dynamic_array(LocationDynamicArray lda) {
+    LocationDynamicArray copy = new_location_dynamic_array_with_capacity(lda->history_capacity);
+    if (copy == NULL) {
+        fprintf(stderr, "Could not copy location dynamic array. Aborting...\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int lda_size = get_size_location_dynamic_array(lda);
+    for (int i = 0; i < lda_size; ++i) {
+        push_back_location_dynamic_array(copy, ith_location_location_dynamic_array(lda, i));
+    }
+
+    return copy;
 }

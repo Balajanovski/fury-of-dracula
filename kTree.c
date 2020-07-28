@@ -12,18 +12,18 @@
 
 #define DEFAULT_CAPACITY 10
 
-struct kNode {
-    KTREE_NODE_CONTENTS value;
-    struct kNode **children;
+struct baseNode {
+    Item value;
+    struct baseNode **children;
     int size;
     int capacity;
 };
 
 struct kTree {
-    struct kNode *root;
+    struct baseNode *root;
 };
 
-typedef struct kNode kNode;
+typedef struct baseNode baseNode;
 typedef struct kTree kTree;
 
 kTree *create_new_tree() {
@@ -35,6 +35,8 @@ kTree *create_new_tree() {
 void free_tree_node(Node old) {
     assert(old != NULL);
     assert(old->children != NULL);
+    assert(old->value.data != NULL);
+    (*old->value.custom_free)(old->value.data);
     free(old->children);
     free(old);
 }
@@ -57,8 +59,8 @@ void free_tree(Tree old) {
     free(old);
 }
 
-Node create_new_node_tree(KTREE_NODE_CONTENTS value) {
-    Node new = malloc(sizeof(struct kNode));
+Node create_new_node_tree(Item value) {
+    Node new = malloc(sizeof(struct baseNode));
     if (new == NULL) {
         fprintf(stderr, "Unable to allocate new tree node. Aborting...\n");
         exit(EXIT_FAILURE);
@@ -118,7 +120,7 @@ inline int get_num_children_tree(Node node) {
     return node->size;
 }
 
-inline KTREE_NODE_CONTENTS get_node_value_tree(Node n) {
+inline Item get_node_value_tree(Node n) {
     assert(n != NULL);
     return n->value;
 }
