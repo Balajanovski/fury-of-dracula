@@ -27,8 +27,7 @@ int main(void)
 {
 	{///////////////////////////////////////////////////////////////////
 	
-		printf("Test for basic functions, "
-			   "just before Dracula's first move\n");
+		printf("Basic functions; just before Dracula's first move\n");
 
 		char *trail =
 			"GST.... SAO.... HZU.... MBB....";
@@ -59,7 +58,7 @@ int main(void)
 
 	{///////////////////////////////////////////////////////////////////
 	
-		printf("Test for encountering Dracula\n");
+		printf("Encountering Dracula\n");
 
 		char *trail =
 			"GST.... SAO.... HCD.... MAO.... DGE.V.. "
@@ -114,9 +113,9 @@ int main(void)
 	}
 
 	{///////////////////////////////////////////////////////////////////
-
-		printf("DvGetTrapLocations (DvGetVampireLocation) Test: Triple trap city\n");
-
+		
+		printf("DvGetTrapLocations (DvGetVampireLocation) Test #2: Triple trap city\n");
+	
 		char *trail =
 			"GTO.... SGE.... HBR.... MBC.... DMI.V.."
 			"GBO.... SPA.... HLI.... MGA.... DVET..."
@@ -409,6 +408,7 @@ int main(void)
     }
 
 	{///////////////////////////////////////////////////////////////////
+
 		printf("DvWhereCanIGo Test #5: St Joseph? No thank you.\n");
         
 		char *trail = 
