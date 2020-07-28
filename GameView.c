@@ -97,40 +97,37 @@ static Player player_id_from_move_string(char* move_string) {
 }
 
 static void remove_trap(GameView gv, PlaceId location) {
-    for (int i = 0; i < TRAIL_SIZE; ++i) {
-        if (gv->trap_locations[i] == location) {
-            gv->trap_locations[i] = NOWHERE;
-            break;
-        }
-    }
-}
+    int actual_trail_size = get_size_trail(gv->dracula_trail);
+    for (int i = 0; i < MIN(TRAIL_SIZE, actual_trail_size); ++i) {
+        DraculaMove ith_latest_trail_move = get_ith_latest_move_trail(gv->dracula_trail, i);
 
-static void add_trap(GameView gv, PlaceId location) {
-    for (int i = 0; i < TRAIL_SIZE; ++i) {
-        if (gv->trap_locations[i] == NOWHERE) {
-            gv->trap_locations[i] = location;
+        if (ith_latest_trail_move.location == location && ith_latest_trail_move.placed_trap) {
+            ith_latest_trail_move.placed_trap = false;
+            set_ith_latest_move_trail(gv->dracula_trail, i, ith_latest_trail_move);
             break;
         }
     }
 }
 
 static int num_traps(GameView gv) {
+    int actual_trail_size = get_size_trail(gv->dracula_trail);
     int num = 0;
-    for (int i = 0; i < TRAIL_SIZE; ++i) {
-        if (gv->trap_locations[i] != NOWHERE) {
-            ++num;
-        }
+    for (int i = 0; i < MIN(TRAIL_SIZE, actual_trail_size); ++i) {
+        DraculaMove ith_latest_trail_move = get_ith_latest_move_trail(gv->dracula_trail, i);
+        num += (ith_latest_trail_move.placed_trap) ? 1 : 0;
     }
 
     return num;
 }
 
 static PlaceId* get_traps(GameView gv) {
+    int actual_trail_size = get_size_trail(gv->dracula_trail);
     PlaceId* trap_locations = (PlaceId*) malloc(sizeof(PlaceId) * num_traps(gv));
     int trap_insert_pos = 0;
-    for (int i = 0; i < TRAIL_SIZE; ++i) {
-        if (gv->trap_locations[i] != NOWHERE) {
-            trap_locations[trap_insert_pos++] = gv->trap_locations[i];
+    for (int i = 0; i < MIN(TRAIL_SIZE, actual_trail_size); ++i) {
+        DraculaMove ith_latest_trail_move = get_ith_latest_move_trail(gv->dracula_trail, i);
+        if (ith_latest_trail_move.placed_trap) {
+            trap_locations[trap_insert_pos++] = ith_latest_trail_move.location;
         }
     }
 
@@ -199,13 +196,14 @@ static PlaceId apply_dracula_encounters_and_actions(GameView gv, PlaceId move, P
     DraculaMove dracula_move;
     dracula_move.location = location;
     dracula_move.move = move;
+    dracula_move.placed_trap = false;
+    dracula_move.placed_vampire = false;
 
     for (int i = 0; i < CHARACTERS_IN_DRACULA_ENCOUNTER; ++i) {
         switch(encounters_and_actions_str[i]) {
             case 'T':
             {
                 dracula_move.placed_trap = true;
-                add_trap(gv, location);
             }
                 break;
             case 'V':
@@ -639,4 +637,28 @@ DraculaTrail GvGetDraculaTrail(GameView gv) {
     assert(gv != NULL);
 
     return gv->dracula_trail;
+}
+
+GameView GvMakeCopy(GameView gv) {
+    GameView new_gv = GvNew("", NULL);
+    if (new_gv == NULL) {
+        fprintf(stderr, "Could not copy GameView. Aborting...\n");
+        exit(EXIT_FAILURE);
+    }
+
+    new_gv->map = gv->map; // Map is not copied, yet rather shared since it is immutable
+
+    for (int i = 0; i < NUM_PLAYERS; ++i) {
+        new_gv->player_location_histories[i] = make_copy_location_dynamic_array(gv->player_location_histories[i]);
+        new_gv->player_move_histories[i] = make_copy_location_dynamic_array(gv->player_move_histories[i]);
+        new_gv->player_death_states[i] = gv->player_death_states[i];
+        new_gv->player_healths[i] = gv->player_healths[i];
+    }
+
+    new_gv->dracula_trail = copy_trail(gv->dracula_trail);
+    new_gv->move_number = gv->move_number;
+    new_gv->score = gv->score;
+    new_gv->vampire_location = gv->vampire_location;
+
+    return NULL;
 }

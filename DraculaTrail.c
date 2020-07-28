@@ -59,7 +59,10 @@ bool push_trail(DraculaTrail trail, DraculaMove move, DraculaMove* popped_move) 
     bool move_popped = false;
     if (trail->num_elements == TRAIL_SIZE) {
         move_popped = true;
-        *popped_move = trail->queue_array[trail->queue_start_index];
+
+        if (popped_move != NULL) {
+            *popped_move = trail->queue_array[trail->queue_start_index];
+        }
 
         --trail->num_elements;
         trail->queue_start_index = (trail->queue_start_index + 1) % TRAIL_SIZE;
@@ -72,11 +75,15 @@ bool push_trail(DraculaTrail trail, DraculaMove move, DraculaMove* popped_move) 
     return move_popped;
 }
 
-DraculaMove get_ith_latest_move_trail(DraculaTrail trail, int i) {
+DraculaMove get_ith_move_trail(DraculaTrail trail, int i) {
     assert(trail != NULL);
     assert(i < trail->num_elements);
 
-    return trail->queue_array[(trail->queue_start_index + (trail->num_elements - i - 1)) % TRAIL_SIZE];
+    return trail->queue_array[(trail->queue_start_index + i) % TRAIL_SIZE];
+}
+
+DraculaMove get_ith_latest_move_trail(DraculaTrail trail, int i) {
+    return get_ith_move_trail(trail, trail->num_elements - i - 1);
 }
 
 void set_ith_latest_move_trail(DraculaTrail trail, int i, DraculaMove move) {
@@ -89,4 +96,20 @@ int get_size_trail(DraculaTrail trail) {
     assert(trail != NULL);
 
     return trail->num_elements;
+}
+
+DraculaTrail copy_trail(DraculaTrail trail) {
+    int trail_size = get_size_trail(trail);
+    DraculaTrail copy = new_trail();
+
+    if (copy == NULL) {
+        fprintf(stderr, "Could not copy dracula trail. Aborting...\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < trail_size; ++i) {
+        push_trail(copy, get_ith_move_trail(trail, i), NULL);
+    }
+
+    return copy;
 }
