@@ -231,6 +231,14 @@ PlaceId *HvWhereCanTheyGoByType(HunterView hv, Player player,
 ////////////////////////////////////////////////////////////////////////
 // Custom interface functions
 
-
+PlaceId *HvWhereCanDraculaGoByRound(HunterView hv, Player player,
+                                 PlaceId loc,
+                                 int *numReturnedLocs, Round round) {
+    assert (hv != NULL);
+    return GvGetReachableByType(hv->gv, PLAYER_DRACULA,
+                                round, loc, true, false, true,
+                                numReturnedLocs);                              
+                                 
+}
 
 
