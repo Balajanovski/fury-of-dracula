@@ -21,29 +21,51 @@
 void decideHunterMove(HunterView hv)
 {
 	// check if hunter knows dracula's location
-	Round round;
-	PlaceId drac_loc = HvGetLastKnownDraculaLocation(hv,&round);
+	Round dracula_last_round = -1;
+	Round current_round = HvGetRound(hv);
+	PlaceId drac_loc = HvGetLastKnownDraculaLocation(hv,&dracula_last_round);
 	Player curr_player = HvGetPlayer(hv); // players 0,1,2,3,4 (typedef enum)
 	PlaceId curr_loc = HvGetPlayerLocation(hv,curr_player);
 	char *msg = "dummy message";
-	PlaceId move;
+	
+	//fixed moves for round 0, should spread the hunters out well
+	if (current_round == 0) {
+	    if (curr_player == PLAYER_DR_SEWARD) {
+	        registerBestPlay("CD", msg);
+	        return;
+	    } else if (curr_player == PLAYER_LORD_GODALMING) {
+	        registerBestPlay("MA", msg);
+	        return;
+	    } else if (curr_player == PLAYER_MINA_HARKER) {
+	        registerBestPlay("CO", msg);
+	        return;
+	    } else if (curr_player == PLAYER_VAN_HELSING) {
+	        registerBestPlay("MI", msg);
+	        return;
+	    }
+	}
 
-
-	// Dracula's location has never been revealed.
-	if (drac_loc == NOWHERE){
-		printf("Dracula's location has never been revealed\n");
-		move = curr_loc;
-	}else{
-		printf("Dracula's location has been revealed : Location -> %s\n", PLACES[drac_loc].abbrev);
-		printf("%d\n",round);
-		printf("%s\n", PLACES[HvGetPlayerLocation(hv,curr_player)].name);
+    
+	// Dracula's location has never been revealed and full trail exists
+	if (drac_loc == NOWHERE && current_round > 6){
+		PlaceId move = curr_loc;
+		registerBestPlay((char *)placeIdToAbbrev(move),msg);
+	} else if (current_round < 6 && drac_loc != NOWHERE) {// if trail not full and don't know where dracula is
+	    int pathLength;
+	    PlaceId *path = HvGetShortestPathTo(hv, curr_player, CASTLE_DRACULA, &pathLength);
+	    PlaceId move = path[0];
+	    registerBestPlay((char *)placeIdToAbbrev(move),msg);
+	 
+	
+	} else {
 		int pathLength;
 		PlaceId *path = HvGetShortestPathTo(hv,curr_player,drac_loc,&pathLength);
-		move = path[0];
+		PlaceId move = path[0];
+		registerBestPlay((char *)placeIdToAbbrev(move),msg);
 	}
 	
 	// parse in the best play
-	registerBestPlay((char *)placeIdToAbbrev(move),msg);
+	//registerBestPlay((char *)placeIdToAbbrev(move),msg);
 }
 
 
