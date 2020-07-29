@@ -215,6 +215,8 @@ PlaceId *HvWhereCanTheyGoByType(HunterView hv, Player player,
 ////////////////////////////////////////////////////////////////////////
 // Your own interface functions
 
-// TODO
+PlaceId *HvWhereCanDraculaGoByRound(HunterView hv, Player player,
+                                 PlaceId loc,
+                                 int *numReturnedLocs, Round round);
 
 #endif // !defined (FOD__HUNTER_VIEW_H_)

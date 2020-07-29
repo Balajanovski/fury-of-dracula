@@ -21,29 +21,58 @@
 void decideHunterMove(HunterView hv)
 {
 	// check if hunter knows dracula's location
-	Round round;
-	PlaceId drac_loc = HvGetLastKnownDraculaLocation(hv,&round);
+	Round dracula_last_round = -1;
+	Round current_round = HvGetRound(hv);
+	PlaceId drac_loc = HvGetLastKnownDraculaLocation(hv,&dracula_last_round);
 	Player curr_player = HvGetPlayer(hv); // players 0,1,2,3,4 (typedef enum)
 	PlaceId curr_loc = HvGetPlayerLocation(hv,curr_player);
 	char *msg = "dummy message";
-	PlaceId move;
-
-
-	// Dracula's location has never been revealed.
-	if (drac_loc == NOWHERE){
-		printf("Dracula's location has never been revealed\n");
-		move = curr_loc;
-	}else{
-		printf("Dracula's location has been revealed : Location -> %s\n", PLACES[drac_loc].abbrev);
-		printf("%d\n",round);
-		printf("%s\n", PLACES[HvGetPlayerLocation(hv,curr_player)].name);
-		int pathLength;
-		PlaceId *path = HvGetShortestPathTo(hv,curr_player,drac_loc,&pathLength);
-		move = path[0];
+	
+	//fixed moves for round 0, should spread the hunters out well
+	if (current_round <= 1) {
+	    if (curr_player == PLAYER_DR_SEWARD) {
+	        registerBestPlay("CD", msg);
+	        return;
+	    } else if (curr_player == PLAYER_LORD_GODALMING) {
+	        registerBestPlay("MA", msg);
+	        return;
+	    } else if (curr_player == PLAYER_MINA_HARKER) {
+	        registerBestPlay("CO", msg);
+	        return;
+	    } else if (curr_player == PLAYER_VAN_HELSING) {
+	        registerBestPlay("MI", msg);
+	        return;
+	    }
+	} else if (current_round < 6) {//can't reveal end of trail yet
+	    if (curr_player == PLAYER_DR_SEWARD) {
+	        registerBestPlay("ED", msg);
+	        return;
+	    } else if (curr_player == PLAYER_LORD_GODALMING) {
+	        registerBestPlay("SJ", msg);
+	        return;
+	    } else if (curr_player == PLAYER_MINA_HARKER) {
+	        registerBestPlay("LS", msg);
+	        return;
+	    } else if (curr_player == PLAYER_VAN_HELSING) {
+	        registerBestPlay("AT", msg);
+	        return;
+	    }
+	
+	} else if (drac_loc == NOWHERE) {
+	    PlaceId move = curr_loc;
+	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
+        return;
+	} else if ((current_round - dracula_last_round) >= 12) {
+	    PlaceId move = curr_loc;
+	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
+	    return;
+	} else {
+	    //breadth first search to determine probability of where dracula is
+	    return;
 	}
 	
-	// parse in the best play
-	registerBestPlay((char *)placeIdToAbbrev(move),msg);
+	
+
 }
 
 
