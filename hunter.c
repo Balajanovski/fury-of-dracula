@@ -29,7 +29,7 @@ void decideHunterMove(HunterView hv)
 	char *msg = "dummy message";
 	
 	//fixed moves for round 0, should spread the hunters out well
-	if (current_round == 0) {
+	if (current_round <= 1) {
 	    if (curr_player == PLAYER_DR_SEWARD) {
 	        registerBestPlay("CD", msg);
 	        return;
@@ -43,29 +43,36 @@ void decideHunterMove(HunterView hv)
 	        registerBestPlay("MI", msg);
 	        return;
 	    }
-	}
-
-    
-	// Dracula's location has never been revealed and full trail exists
-	if (drac_loc == NOWHERE && current_round > 6){
-		PlaceId move = curr_loc;
-		registerBestPlay((char *)placeIdToAbbrev(move),msg);
-	} else if (current_round < 6 && drac_loc != NOWHERE) {// if trail not full and don't know where dracula is
-	    int pathLength;
-	    PlaceId *path = HvGetShortestPathTo(hv, curr_player, CASTLE_DRACULA, &pathLength);
-	    PlaceId move = path[0];
-	    registerBestPlay((char *)placeIdToAbbrev(move),msg);
-	 
+	} else if (current_round < 6) {//can't reveal end of trail yet
+	    if (curr_player == PLAYER_DR_SEWARD) {
+	        registerBestPlay("ED", msg);
+	        return;
+	    } else if (curr_player == PLAYER_LORD_GODALMING) {
+	        registerBestPlay("SJ", msg);
+	        return;
+	    } else if (curr_player == PLAYER_MINA_HARKER) {
+	        registerBestPlay("LS", msg);
+	        return;
+	    } else if (curr_player == PLAYER_VAN_HELSING) {
+	        registerBestPlay("AT", msg);
+	        return;
+	    }
 	
+	} else if (drac_loc == NOWHERE) {
+	    PlaceId move = curr_loc;
+	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
+        return;
+	} else if ((current_round - dracula_last_round) >= 12) {
+	    PlaceId move = curr_loc;
+	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
+	    return;
 	} else {
-		int pathLength;
-		PlaceId *path = HvGetShortestPathTo(hv,curr_player,drac_loc,&pathLength);
-		PlaceId move = path[0];
-		registerBestPlay((char *)placeIdToAbbrev(move),msg);
+	    //breadth first search to determine probability of where dracula is
+	    return;
 	}
 	
-	// parse in the best play
-	//registerBestPlay((char *)placeIdToAbbrev(move),msg);
+	
+
 }
 
 
