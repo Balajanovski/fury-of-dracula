@@ -15,7 +15,7 @@
 #include "Game.h"
 #include "kTree.h"
 
-#define NANO_SECOND_END_BUFFER 9000000.0
+#define NANO_SECOND_END_BUFFER 100000000.0
 #define EXPLORATION_PARAMETER 1.41421356237f
 
 
@@ -53,6 +53,10 @@ static Item create_game_state_item(DraculaView value, int wins, int visits, Plac
 // Math helpers
 
 static float compute_uct(int wins, int visits, int total_parent_node_simulations) {
+    if (visits == 0) {
+        return FLT_MAX;
+    }
+
     return (float) wins / (float) visits + EXPLORATION_PARAMETER * sqrtf(2.f * logf((float) total_parent_node_simulations) / (float) visits);
 }
 
@@ -72,6 +76,7 @@ static Node uct_select_child(Node node) {
         float uct = compute_uct(child_node_state->wins, child_node_state->visits, curr_node_game_state->visits);
         if (uct > max_uct) {
             node_with_max_uct = node_children[i];
+            max_uct = uct;
         }
     }
 
@@ -82,9 +87,11 @@ static Node select_promising_node(Tree mcts_tree) {
     Node curr_node = get_root_tree(mcts_tree);
 
     int curr_node_children = get_num_children_tree(curr_node);
+    Node* node_children = get_children_tree(curr_node);
     while (curr_node_children > 0) {
         curr_node = uct_select_child(curr_node);
         curr_node_children = get_num_children_tree(curr_node);
+        node_children = get_children_tree(curr_node);
     }
 
     return curr_node;
@@ -221,8 +228,6 @@ void decideDraculaMove(DraculaView dv) {
         clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);
         clock_gettime(CLOCK_MONOTONIC_RAW, &curr_time);
         while ((curr_time.tv_sec * 1e9 + curr_time.tv_nsec) - (start_time.tv_sec * 1e9 + start_time.tv_nsec) < (TURN_LIMIT_MSECS * 1000000.0) - NANO_SECOND_END_BUFFER) {
-            printf("%f\n", (curr_time.tv_sec * 1e9 + curr_time.tv_nsec) - (start_time.tv_sec * 1e9 + start_time.tv_nsec));
-
             Node promising_node = select_promising_node(mcts_tree);
 
             int num_expanded_child_nodes = -1;
