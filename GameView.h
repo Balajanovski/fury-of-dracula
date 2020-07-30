@@ -25,6 +25,9 @@
 #define ENCOUNTERS_STRING_LEN 4
 #define CHARACTERS_IN_DRACULA_ENCOUNTER 2
 #define CHARACTERS_IN_DRACULA_ACTION 1
+#define MOVE_STRING_LENGTH 7
+
+typedef enum {GAME_NOT_OVER = 0, HUNTERS_WIN = 1, DRACULA_WINS = 2} GameCompletionState;
 
 typedef struct gameView *GameView;
 
@@ -263,5 +266,8 @@ PlaceId GvGetLatestRevealedDraculaPosition(GameView gv, Round* round);
 DraculaTrail GvGetDraculaTrail(GameView gv);
 
 GameView GvMakeCopy(GameView gv);
+void GvAdvanceStateByMoves(GameView gv, char* play_string);
+
+GameCompletionState GvGameState(GameView gv);
 
 #endif // !defined (FOD__GAME_VIEW_H_)

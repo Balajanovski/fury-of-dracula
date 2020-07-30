@@ -15,6 +15,7 @@
 struct baseNode {
     Item value;
     struct baseNode **children;
+    struct baseNode *parent;
     int size;
     int capacity;
 };
@@ -72,11 +73,16 @@ Node create_new_node_tree(Item value) {
         fprintf(stderr, "Unable to allocate new tree node children. Aborting...\n");
         exit(EXIT_FAILURE);
     }
+    new->parent = NULL;
 
     new->capacity = DEFAULT_CAPACITY;
     new->size = 0;
     
     return new;
+}
+
+void set_node_value_tree(Node n, Item value) {
+    n->value = value;
 }
 
 void set_root_tree(Tree t, Node n) {
@@ -103,6 +109,7 @@ void add_new_child_tree(Node parent, Node child) {
     }
 
     parent->children[parent->size++] = child;
+    child->parent = parent;
 }
 
 inline Node get_root_tree(Tree tree) {
@@ -118,6 +125,10 @@ inline Node* get_children_tree(Node node) {
 inline int get_num_children_tree(Node node) {
     assert(node != NULL);
     return node->size;
+}
+
+inline Node get_parent_tree(Node node) {
+    return node->parent;
 }
 
 inline Item get_node_value_tree(Node n) {

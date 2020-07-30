@@ -18,6 +18,7 @@ void free_tree(Tree old);
 void free_tree_node(Node old);
 
 Node create_new_node_tree(Item value);
+void set_node_value_tree(Node n, Item value);
 
 Item get_node_value_tree(Node n);
 
@@ -28,6 +29,8 @@ Node get_root_tree(Tree tree);
 
 Node* get_children_tree(Node node);
 int get_num_children_tree(Node node);
+
+Node get_parent_tree(Node node);
 
 
 #endif
