@@ -15,6 +15,8 @@
 #include "Game.h"
 #include "hunter.h"
 #include "HunterView.h"
+#include "Queue.h"
+#include "LocationDynamicArray.h"
 #include <stdio.h>
 
 
@@ -67,7 +69,42 @@ void decideHunterMove(HunterView hv)
 	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
 	    return;
 	} else {
-	    //breadth first search to determine probability of where dracula is
+	    //number of rounds that have passed since last known dracula location
+	    //determined how far he could be now
+        Round bfs_cap = current_round - dracula_last_round;
+        
+        //setting up distance array for every place in game
+        int distance_array[71] = {-1};
+        
+        //setting last known location in distance array = 0
+        distance_array[(int)drac_loc] = 0;
+        
+        //outer for loop determines how far dracula can travel
+        for (int i = 1; i <= bfs_cap; i++) {
+            //loops through distance array to check for latest places he could be
+            for (int j = 0; j < 71; j++) {
+                //if a place in the distance array could have been visited in previous
+                //round to what we are checking
+                if (distance_array[j] < i && distance_array[j] >= 0) {
+                    int numReturnedLocs;
+                    PlaceId *reachable = HvWhereCanDraculaGoByRound(hv, 
+                                         PLAYER_DRACULA, (PlaceId)j,
+                                         &numReturnedLocs,
+                                         (dracula_last_round + i));
+                    
+                    //loop through reachable and update distance array                    
+                    for (int k = 0; k < numReturnedLocs; k++) {
+                        if (distance_array[reachable[k]] < 0) {
+                            distance_array[reachable[k]] = i;
+                        }
+                    }
+                    
+                }
+            }
+        
+        }
+        
+	    
 	    return;
 	}
 	
