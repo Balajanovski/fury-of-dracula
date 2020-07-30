@@ -84,14 +84,12 @@ static Node uct_select_child(Node node) {
 }
 
 static Node select_promising_node(Tree mcts_tree) {
-    Node curr_node = get_root_tree(mcts_tree);
+    Node curr_node = get_root_tree(mcts_tree); // Bug: Root is sometimes NULL?
 
     int curr_node_children = get_num_children_tree(curr_node);
-    Node* node_children = get_children_tree(curr_node);
     while (curr_node_children > 0) {
         curr_node = uct_select_child(curr_node);
         curr_node_children = get_num_children_tree(curr_node);
-        node_children = get_children_tree(curr_node);
     }
 
     return curr_node;
