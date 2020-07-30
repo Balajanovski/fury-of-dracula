@@ -265,6 +265,7 @@ static char** possible_moves_for_dracula(DraculaView dv, int* num_moves_returned
         }
 
         possible_moves[0] = TELEPORT;
+        num_valid_moves = 1;
     }
 
     int num_traps = -1;
@@ -331,7 +332,7 @@ static char** possible_moves_for_hunter(DraculaView dv, Player player, int* num_
         // Add move string place and player
         const char* place_abbrev = placeIdToAbbrev(possible_moves[move_index]);
         strcpy(possible_move_str+1, place_abbrev);
-        possible_move_str[0] = player_to_code(PLAYER_DRACULA);
+        possible_move_str[0] = player_to_code(player);
 
         // Set rest of move string to blank
         for (int j = MOVE_STRING_LENGTH - ENCOUNTERS_STRING_LEN; j < MOVE_STRING_LENGTH; ++j) {
@@ -365,11 +366,14 @@ static char** possible_moves_for_hunter(DraculaView dv, Player player, int* num_
 char** DvComputePossibleMovesForPlayer(DraculaView dv, int* num_moves_returned) {
     Player player = GvGetPlayer(dv->gv);
 
+    char** possible_moves;
     if (player == PLAYER_DRACULA) {
-        return possible_moves_for_dracula(dv, num_moves_returned);
+        possible_moves = possible_moves_for_dracula(dv, num_moves_returned);
     } else {
-        return possible_moves_for_hunter(dv, player, num_moves_returned);
+        possible_moves = possible_moves_for_hunter(dv, player, num_moves_returned);
     }
+
+    return possible_moves;
 }
 
 GameCompletionState DvGameState(DraculaView dv) {

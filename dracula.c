@@ -15,7 +15,7 @@
 #include "Game.h"
 #include "kTree.h"
 
-#define NANO_SECOND_END_BUFFER 100000000.0
+#define NANO_SECOND_END_BUFFER 90000000.0f
 #define EXPLORATION_PARAMETER 1.41421356237f
 
 
