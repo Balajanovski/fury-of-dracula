@@ -393,8 +393,9 @@ static void get_reachable_by_type(GameView gv, Player player, Round round,
     }
 }
 
-
-
+void GvAdvanceStateByMoves(GameView gv, char* play_string) {
+    simulate_past_plays(gv, play_string);
+}
 
 ////////////////////////////////////////////////////////////////////////
 // Constructor/Destructor
@@ -658,5 +659,15 @@ GameView GvMakeCopy(GameView gv) {
     new_gv->score = gv->score;
     new_gv->vampire_location = gv->vampire_location;
 
-    return NULL;
+    return new_gv;
+}
+
+GameCompletionState GvGameState(GameView gv) {
+    if (gv->player_healths[PLAYER_DRACULA] <= 0) {
+        return HUNTERS_WIN;
+    } else if (gv->score <= 0) {
+        return DRACULA_WINS;
+    } else {
+        return GAME_NOT_OVER;
+    }
 }

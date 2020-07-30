@@ -19,7 +19,6 @@
 #include "Game.h"
 #include "GameView.h"
 #include "Map.h"
-#include "LocationDynamicArray.h"
 #include "MoveSet.h"
 
 
@@ -210,6 +209,175 @@ PlaceId *DvWhereCanTheyGoByType(DraculaView dv, Player player,
     free_move_set(reachable_locs);
 
     return filtered_reachable_locs;
+}
+
+DraculaView DvMakeCopy(DraculaView dv) {
+    assert(dv != NULL);
+
+    DraculaView new = malloc(sizeof(*new));
+    if (new == NULL) {
+        fprintf(stderr, "Couldn't allocate DraculaView for copy\n");
+        exit(EXIT_FAILURE);
+    }
+
+    new->gv = GvMakeCopy(dv->gv);
+
+    return new;
+}
+
+void DvAdvanceStateByMoves(DraculaView dv, char* play_string) {
+    assert(dv != NULL);
+
+    GvAdvanceStateByMoves(dv->gv, play_string);
+}
+
+static bool can_place_encounter(PlaceId place, PlaceId vamp_loc, const PlaceId* trap_locs, int num_traps) {
+    if (!placeIsLand(place)) {
+        return false;
+    }
+
+    int num_encounters = (place == vamp_loc);
+    for (int i = 0; i < num_traps; ++i) {
+        num_encounters += (trap_locs[i] == place);
+    }
+
+    return num_encounters < MAX_NUM_ENCOUNTERS_IN_CITY;
+}
+
+static char player_to_code(Player player) {
+    const static char player_codes[] = {'G', 'S', 'H', 'M', 'D'};
+    return player_codes[player];
+}
+
+static char** possible_moves_for_dracula(DraculaView dv, int* num_moves_returned) {
+    int num_valid_moves = -1;
+    PlaceId* possible_moves = DvGetValidMoves(dv, &num_valid_moves);
+    assert(num_valid_moves != -1);
+
+    if (num_valid_moves == 0) {
+        // Can only teleport
+
+        free(possible_moves);
+        possible_moves = malloc(sizeof(PlaceId));
+        if (possible_moves == NULL) {
+            fprintf(stderr, "Unable to allocate new possible moves for special dracula teleport case in AI. Aborting...\n");
+            exit(EXIT_FAILURE);
+        }
+
+        possible_moves[0] = TELEPORT;
+        num_valid_moves = 1;
+    }
+
+    int num_traps = -1;
+    PlaceId* trap_locs = GvGetTrapLocations(dv->gv, &num_traps);
+    assert(num_traps != -1);
+    PlaceId vampire_loc = GvGetVampireLocation(dv->gv);
+    Round current_round = DvGetRound(dv);
+
+    char** move_buffer = malloc(sizeof(char*) * num_valid_moves);
+    for (int move_index = 0; move_index < num_valid_moves; ++move_index) {
+        char* possible_move_str = malloc(sizeof(char) * (MOVE_STRING_LENGTH + 1));
+
+        // Add move string place and player
+        const char* place_abbrev = placeIdToAbbrev(possible_moves[move_index]);
+        strcpy(possible_move_str+1, place_abbrev);
+        possible_move_str[0] = player_to_code(PLAYER_DRACULA);
+
+        // Set rest of move string to blank
+        for (int j = MOVE_STRING_LENGTH - ENCOUNTERS_STRING_LEN; j < MOVE_STRING_LENGTH; ++j) {
+            possible_move_str[j] = '.';
+        }
+
+        // Add dracula's encounters
+        if (can_place_encounter(possible_moves[move_index], vampire_loc, trap_locs, num_traps)) {
+            if (current_round % 13 == 0) {
+                possible_move_str[MOVE_STRING_LENGTH - ENCOUNTERS_STRING_LEN] = 'V';
+            } else {
+                possible_move_str[MOVE_STRING_LENGTH - ENCOUNTERS_STRING_LEN] = 'T';
+            }
+        }
+
+        // Do not have to worry about adding encounter expiry action to move
+        // This is automatically handled inside the GameView
+
+        possible_move_str[MOVE_STRING_LENGTH] = '\0';
+        move_buffer[move_index] = possible_move_str;
+    }
+
+    free(possible_moves);
+    free(trap_locs);
+
+    *num_moves_returned = num_valid_moves;
+    return move_buffer;
+}
+
+static char** possible_moves_for_hunter(DraculaView dv, Player player, int* num_moves_returned) {
+    assert(player != PLAYER_DRACULA);
+
+    int num_valid_moves = -1;
+    PlaceId* possible_moves = DvWhereCanTheyGo(dv, player, &num_valid_moves);
+    assert(num_valid_moves != -1);
+
+    int num_traps = -1;
+    PlaceId* trap_locs = GvGetTrapLocations(dv->gv, &num_traps);
+    assert(num_traps != -1);
+    PlaceId vampire_loc = GvGetVampireLocation(dv->gv);
+
+    PlaceId dracula_loc = GvGetPlayerLocation(dv->gv, PLAYER_DRACULA);
+    char** move_buffer = malloc(sizeof(char*) * num_valid_moves);
+
+    for (int move_index = 0; move_index < num_valid_moves; ++move_index) {
+        char* possible_move_str = malloc(sizeof(char) * (MOVE_STRING_LENGTH + 1));
+
+        // Add move string place and player
+        const char* place_abbrev = placeIdToAbbrev(possible_moves[move_index]);
+        strcpy(possible_move_str+1, place_abbrev);
+        possible_move_str[0] = player_to_code(player);
+
+        // Set rest of move string to blank
+        for (int j = MOVE_STRING_LENGTH - ENCOUNTERS_STRING_LEN; j < MOVE_STRING_LENGTH; ++j) {
+            possible_move_str[j] = '.';
+        }
+
+        // Apply encounters
+        int encounter_string_index = MOVE_STRING_LENGTH - ENCOUNTERS_STRING_LEN;
+        for (int trap_index = 0; trap_index < num_traps; ++trap_index) {
+            if (trap_locs[trap_index] == possible_moves[move_index]) {
+                possible_move_str[encounter_string_index++] = 'T';
+            }
+        }
+        if (possible_moves[move_index] == vampire_loc) {
+            possible_move_str[encounter_string_index++] = 'V';
+        } if (possible_moves[move_index] == dracula_loc) {
+            possible_move_str[encounter_string_index] = 'D';
+        }
+
+        possible_move_str[MOVE_STRING_LENGTH] = '\0';
+        move_buffer[move_index] = possible_move_str;
+    }
+
+    free(possible_moves);
+    free(trap_locs);
+
+    *num_moves_returned = num_valid_moves;
+    return move_buffer;
+}
+
+char** DvComputePossibleMovesForPlayer(DraculaView dv, int* num_moves_returned) {
+    Player player = GvGetPlayer(dv->gv);
+
+    char** possible_moves;
+    if (player == PLAYER_DRACULA) {
+        possible_moves = possible_moves_for_dracula(dv, num_moves_returned);
+    } else {
+        possible_moves = possible_moves_for_hunter(dv, player, num_moves_returned);
+    }
+
+    return possible_moves;
+}
+
+GameCompletionState DvGameState(DraculaView dv) {
+    return GvGameState(dv->gv);
 }
 
 ////////////////////////////////////////////////////////////////////////

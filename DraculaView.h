@@ -19,7 +19,10 @@
 #include <stdbool.h>
 
 #include "Game.h"
+#include "GameView.h"
 #include "Places.h"
+
+#define MAX_NUM_ENCOUNTERS_IN_CITY 3
 
 typedef struct draculaView *DraculaView;
 
@@ -176,8 +179,12 @@ PlaceId *DvWhereCanTheyGoByType(DraculaView dv, Player player,
                                 int *numReturnedLocs);
 
 ////////////////////////////////////////////////////////////////////////
-// Your own interface functions
+// Custom interface functions
 
-// TODO
+DraculaView DvMakeCopy(DraculaView dv);
+
+char** DvComputePossibleMovesForPlayer(DraculaView dv, int* num_moves_returned);
+void DvAdvanceStateByMoves(DraculaView dv, char* play_string);
+GameCompletionState DvGameState(DraculaView dv);
 
 #endif // !defined(FOD__DRACULA_VIEW_H_)
