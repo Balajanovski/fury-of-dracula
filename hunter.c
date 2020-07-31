@@ -15,12 +15,15 @@
 #include "Game.h"
 #include "hunter.h"
 #include "HunterView.h"
+#include "Probability.h"
 #include <stdio.h>
 #include <assert.h>
+#include <math.h>
+#include "Queue.h"
 
 void decideHunterMove(HunterView hv)
 {
-	// Check if hunter knows dracula's location
+	/* // Check if hunter knows dracula's location
 	Round dracula_last_round = -1;
 	PlaceId drac_loc = HvGetLastKnownDraculaLocation(hv,&dracula_last_round);
 	
@@ -68,16 +71,18 @@ void decideHunterMove(HunterView hv)
 	    PlaceId move = curr_loc;
 	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
 	    return;
-	} else {
+	} else { */
+		int curr_round = 7, dracula_last_round = 5, drac_loc = STRASBOURG;
+
 		// Calculates a radius of his whereabouts according to the number
 		// of rounds that have passed since last known dracula location.
 		Round bfs_cap = curr_round - dracula_last_round;
         
-        int distance_array[NUM_REAL_PLACES];
+        int distance[NUM_REAL_PLACES];
 		for (int i = 0; i < NUM_REAL_PLACES; i++) {
-			distance_array[i] = -1;
+			distance[i] = -1;
 		}
-        distance_array[(int)drac_loc] = 0; // Last known location is set to 0
+        distance[(int)drac_loc] = 0; // Last known location is set to 0
         
         // Outer loop determines how far dracula can travel
         for (int i = 1; i <= bfs_cap; i++) {
@@ -85,7 +90,7 @@ void decideHunterMove(HunterView hv)
             for (int j = 0; j < NUM_REAL_PLACES; j++) {
                 // If a place in the distance array could have been visited in previous
                 // round to what we are checking
-                if (distance_array[j] == i - 1) {
+                if (distance[j] == i - 1) {
 					int numReturnedLocs;
                     PlaceId *reachable = HvWhereCanDraculaGoByRound(hv, 
                                          PLAYER_DRACULA, (PlaceId)j,
@@ -94,16 +99,31 @@ void decideHunterMove(HunterView hv)
                     
                     // Loop through reachable and update distance array                    
                     for (int k = 0; k < numReturnedLocs; k++) {
-                        if (distance_array[reachable[k]] < 0) {
-                            distance_array[reachable[k]] = i;
+                        if (distance[reachable[k]] < 0) {
+                            distance[reachable[k]] = i;
                         }
                     }
                     
                 }
             }
 		}
-	}
+		
+		// With elements ≥ 0 in the distance_array, a mean and
+		// standard deviation, variance can be inferred upon.
+		double mean = findMean(distance, NUM_REAL_PLACES);
+		double variance = findVariance(distance, mean, NUM_REAL_PLACES);
+		double STDdev = findSTDdeviation(variance);
+		printf("Mean = %lf\n", mean);
+		printf("Variance = %lf\n", variance);
+		printf("STD deviation = %lf\n", STDdev);
+
+		for (int i = 1; i <= bfs_cap; i++) {
+			double prob = getRadiusProbability(0, i, findMean(distance, NUM_REAL_PLACES), 
+								findVariance(distance, mean, NUM_REAL_PLACES), 
+								findSTDdeviation(variance));
+			printf("Probability at %d –– %lf\n", i, prob);
+
+		}
+	//}
 	
 }
-
-
