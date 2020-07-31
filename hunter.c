@@ -15,8 +15,12 @@
 #include "Game.h"
 #include "hunter.h"
 #include "HunterView.h"
+#include "Probability.h"
 #include <stdio.h>
 #include <assert.h>
+#include <math.h>
+#include "Queue.h"
+#define INTEG_BARS 1000
 
 void decideHunterMove(HunterView hv)
 {
@@ -73,11 +77,11 @@ void decideHunterMove(HunterView hv)
 		// of rounds that have passed since last known dracula location.
 		Round bfs_cap = curr_round - dracula_last_round;
         
-        int distance_array[NUM_REAL_PLACES];
+        float distance[NUM_REAL_PLACES];
 		for (int i = 0; i < NUM_REAL_PLACES; i++) {
-			distance_array[i] = -1;
+			distance[i] = -1;
 		}
-        distance_array[(int)drac_loc] = 0; // Last known location is set to 0
+        distance[(int)drac_loc] = 0; // Last known location is set to 0
         
         // Outer loop determines how far dracula can travel
         for (int i = 1; i <= bfs_cap; i++) {
@@ -85,7 +89,7 @@ void decideHunterMove(HunterView hv)
             for (int j = 0; j < NUM_REAL_PLACES; j++) {
                 // If a place in the distance array could have been visited in previous
                 // round to what we are checking
-                if (distance_array[j] == i - 1) {
+                if (distance[j] == i - 1) {
 					int numReturnedLocs;
                     PlaceId *reachable = HvWhereCanDraculaGoByRound(hv, 
                                          PLAYER_DRACULA, (PlaceId)j,
@@ -94,16 +98,35 @@ void decideHunterMove(HunterView hv)
                     
                     // Loop through reachable and update distance array                    
                     for (int k = 0; k < numReturnedLocs; k++) {
-                        if (distance_array[reachable[k]] < 0) {
-                            distance_array[reachable[k]] = i;
+                        if (distance[reachable[k]] < 0) {
+                            distance[reachable[k]] = i;
                         }
                     }
                     
                 }
             }
 		}
+		
+		// With elements ≥ 0 in the distance_array, a mean and
+		// standard deviation, variance can be inferred upon.
+		double mean = findMean(distance, NUM_REAL_PLACES);
+		double variance = findVariance(distance, mean, NUM_REAL_PLACES);
+		double STDdev = findSTDdeviation(variance);
+
+		// Combined, gaussian density probabilities are calculated for each radius
+		for (int i = 1; i <= bfs_cap; i++) {
+			float prob = getRadiusProbability(0, i, mean, variance, STDdev);
+
+			// Calculated probability is corresponded to the radius set by distance[]
+			for (int j = 0; j < NUM_REAL_PLACES; j++) {
+				if (distance[j] == i) distance[j] = prob;
+			}
+		}
+
+		// Debugging tool: Distance is filled now filled with probabilities
+		// corresponding to their radius
+		//for (int i = 0; i < NUM_REAL_PLACES; i++)
+		//	printf("[%d, %lf] ", i, distance[i]);
 	}
 	
 }
-
-

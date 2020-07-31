@@ -20,7 +20,7 @@ LIBS = -lm
 all: $(BINS)
 
 dracula: playerDracula.o dracula.o DraculaView.o  $(OBJS) $(LIBS)
-hunter: playerHunter.o hunter.o HunterView.o $(OBJS) $(LIBS)
+hunter: playerHunter.o hunter.o HunterView.o Probability.o $(OBJS) $(LIBS)
 
 playerDracula.o: player.c dracula.h Game.h DraculaView.h GameView.h Places.h
 	$(CC) $(CFLAGS) -DI_AM_DRACULA -c $< -o $@
@@ -56,6 +56,7 @@ LocationDynamicArray.o: LocationDynamicArray.c LocationDynamicArray.h Places.h
 Queue.o: Queue.c Queue.h Places.h
 MoveSet.o: MoveSet.c MoveSet.h Places.h
 kTree.o: kTree.c kTree.h
+Probability.o: Probability.c Probability.h
 
 .PHONY: clean
 clean:
