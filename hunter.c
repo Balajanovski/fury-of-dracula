@@ -17,6 +17,7 @@
 #include "HunterView.h"
 #include <stdio.h>
 #include <assert.h>
+#include "Queue.h"
 
 void decideHunterMove(HunterView hv)
 {
@@ -68,39 +69,59 @@ void decideHunterMove(HunterView hv)
 	    PlaceId move = curr_loc;
 	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
 	    return;
-	} else {
-		// Calculates a radius of his whereabouts according to the number
-		// of rounds that have passed since last known dracula location.
-		Round bfs_cap = curr_round - dracula_last_round;
+	// } else {
+	// 	// Calculates a radius of his whereabouts according to the number
+	// 	// of rounds that have passed since last known dracula location.
+	// 	Round bfs_cap = curr_round - dracula_last_round;
         
-        int distance_array[NUM_REAL_PLACES];
-		for (int i = 0; i < NUM_REAL_PLACES; i++) {
-			distance_array[i] = -1;
-		}
-        distance_array[(int)drac_loc] = 0; // Last known location is set to 0
+    //     int distance_array[NUM_REAL_PLACES];
+	// 	for (int i = 0; i < NUM_REAL_PLACES; i++) {
+	// 		distance_array[i] = -1;
+	// 	}
+    //     distance_array[(int)drac_loc] = 0; // Last known location is set to 0
         
-        // Outer loop determines how far dracula can travel
-        for (int i = 1; i <= bfs_cap; i++) {
-            // Inside loops through distance array to check for latest places he could be
-            for (int j = 0; j < NUM_REAL_PLACES; j++) {
-                // If a place in the distance array could have been visited in previous
-                // round to what we are checking
-                if (distance_array[j] == i - 1) {
-					int numReturnedLocs;
-                    PlaceId *reachable = HvWhereCanDraculaGoByRound(hv, 
-                                         PLAYER_DRACULA, (PlaceId)j,
-                                         &numReturnedLocs,
-                                         (dracula_last_round + i));
+    //     // Outer loop determines how far dracula can travel
+    //     for (int i = 1; i <= bfs_cap; i++) {
+    //         // Inside loops through distance array to check for latest places he could be
+    //         for (int j = 0; j < NUM_REAL_PLACES; j++) {
+    //             // If a place in the distance array could have been visited in previous
+    //             // round to what we are checking
+    //             if (distance_array[j] == i - 1) {
+	// 				int numReturnedLocs;
+    //                 PlaceId *reachable = HvWhereCanDraculaGoByRound(hv, 
+    //                                      PLAYER_DRACULA, (PlaceId)j,
+    //                                      &numReturnedLocs,
+    //                                      (dracula_last_round + i));
                     
-                    // Loop through reachable and update distance array                    
-                    for (int k = 0; k < numReturnedLocs; k++) {
-                        if (distance_array[reachable[k]] < 0) {
-                            distance_array[reachable[k]] = i;
-                        }
-                    }
+    //                 // Loop through reachable and update distance array                    
+    //                 for (int k = 0; k < numReturnedLocs; k++) {
+    //                     if (distance_array[reachable[k]] < 0) {
+    //                         distance_array[reachable[k]] = i;
+    //                     }
+    //                 }
                     
-                }
-            }
+    //             }
+    //         }
+	// 	}
+	// }
+
+	}else{
+		int *dist = calloc(NUM_REAL_PLACES,sizeof(int));
+		int *visited = calloc(NUM_REAL_PLACES,sizeof(int));
+		int numReturnlocs;
+		Queue q = NewQueue();
+		AddtoQueue(q,drac_loc);
+		PlaceId *reachable = HvWhereCanDraculaGoByRound(hv,PLAYER_DRACULA,drac_loc,&numReturnlocs,dracula_last_round);
+		while((int)QueueSize(q) != 0){
+			PlaceId p = RemovefromQueue(q);
+			for(int i = 0; i < numReturnlocs; i++) {	
+				if(!visited[(int)reachable[i]]){
+					visited[(int)reachable[i]] = 1;
+					AddtoQueue(q,reachable[i]);
+					dist[(int)reachable[i]] = dist[(int)p] + 1;
+				}
+			}
+
 		}
 	}
 	
