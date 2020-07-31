@@ -3,9 +3,9 @@
 #include <math.h>
 #include "Probability.h"
 
-static double const SQROOT_2PI = M_SQRT1_2 * M_2_SQRTPI;
+#define INTEG_BARS 1000
 
-double findMean(int values[], int size)
+double findMean(float values[], int size)
 {
     int i, usedValue = 0; double sum = 0;
     for ( i = 0; i < size; i++ )
@@ -16,7 +16,7 @@ double findMean(int values[], int size)
     return sum / usedValue;
 }
  
-double findVariance(int values[], double mean, int size)
+double findVariance(float values[], double mean, int size)
 {
     double squareDiff = 0; int usedValue = 0;
     for (int i = 0; i < size; i++)  
@@ -34,19 +34,17 @@ double findSTDdeviation(double variance)
 
 double getGaussianDensity(double x, double mean, double vari, double STDdev)
 {
-   double numerator = exp(-0.5 * ((x - mean) * (x - mean)) / ((vari) * (vari)));
-   double denominator = SQROOT_2PI * STDdev;
-   return  numerator / denominator;
+   
+   double denom = 0.5 * M_SQRT1_2 * M_2_SQRTPI;
+   return (1 / STDdev) * denom * exp(-0.5 * (x - mean) * (x - mean) / (vari));
 }
 
 double getRadiusProbability(double loB, double upB, double mean, double vari, double STDdev)
 {
-
-    double areaProb = 0, n_strips = 10;
-    float h = (upB - loB) / 10;
-
-    for (int i = loB; i < upB; i += h) {
-        areaProb += getGaussianDensity(i, mean, vari, STDdev);
+    double areaProb = 0;
+    double h = (upB - loB) / INTEG_BARS;
+    for (double i = loB; i < upB; i += h) {
+        areaProb += getGaussianDensity(i, mean, vari, STDdev) * (upB - loB) / INTEG_BARS;
     }
     return areaProb;
 }

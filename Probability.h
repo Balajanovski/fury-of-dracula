@@ -4,8 +4,8 @@
 #ifndef PROBABILITY_H
 #define PROBABILITY_H
 
-double findMean(int values[], int size);
-double findVariance(int values[], double mean, int size);
+double findMean(float values[], int size);
+double findVariance(float values[], double mean, int size);
 double findSTDdeviation(double variance);
 
 double gaussianDensity(double x, double mean, double vari, double STDdev);

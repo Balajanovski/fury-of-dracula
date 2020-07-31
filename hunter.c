@@ -20,10 +20,11 @@
 #include <assert.h>
 #include <math.h>
 #include "Queue.h"
+#define INTEG_BARS 1000
 
 void decideHunterMove(HunterView hv)
 {
-	/* // Check if hunter knows dracula's location
+	// Check if hunter knows dracula's location
 	Round dracula_last_round = -1;
 	PlaceId drac_loc = HvGetLastKnownDraculaLocation(hv,&dracula_last_round);
 	
@@ -71,14 +72,12 @@ void decideHunterMove(HunterView hv)
 	    PlaceId move = curr_loc;
 	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
 	    return;
-	} else { */
-		int curr_round = 7, dracula_last_round = 5, drac_loc = STRASBOURG;
-
+	} else {
 		// Calculates a radius of his whereabouts according to the number
 		// of rounds that have passed since last known dracula location.
 		Round bfs_cap = curr_round - dracula_last_round;
         
-        int distance[NUM_REAL_PLACES];
+        float distance[NUM_REAL_PLACES];
 		for (int i = 0; i < NUM_REAL_PLACES; i++) {
 			distance[i] = -1;
 		}
@@ -113,17 +112,21 @@ void decideHunterMove(HunterView hv)
 		double mean = findMean(distance, NUM_REAL_PLACES);
 		double variance = findVariance(distance, mean, NUM_REAL_PLACES);
 		double STDdev = findSTDdeviation(variance);
-		printf("Mean = %lf\n", mean);
-		printf("Variance = %lf\n", variance);
-		printf("STD deviation = %lf\n", STDdev);
 
+		// Combined, gaussian density probabilities are calculated for each radius
 		for (int i = 1; i <= bfs_cap; i++) {
-			double prob = getRadiusProbability(0, i, findMean(distance, NUM_REAL_PLACES), 
-								findVariance(distance, mean, NUM_REAL_PLACES), 
-								findSTDdeviation(variance));
-			printf("Probability at %d –– %lf\n", i, prob);
+			float prob = getRadiusProbability(0, i, mean, variance, STDdev);
 
+			// Calculated probability is corresponded to the radius set by distance[]
+			for (int j = 0; j < NUM_REAL_PLACES; j++) {
+				if (distance[j] == i) distance[j] = prob;
+			}
 		}
-	//}
+
+		// Debugging tool: Distance is filled now filled with probabilities
+		// corresponding to their radius
+		//for (int i = 0; i < NUM_REAL_PLACES; i++)
+		//	printf("[%d, %lf] ", i, distance[i]);
+	}
 	
 }
