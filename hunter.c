@@ -153,7 +153,7 @@ void decideHunterMove(HunterView hv)
 
 		// Checks if hunter can reach most probable location in 1 move
 		int numPlaces = -1;
-		PlaceId *canGo = HvWhereCanIGo(hv, &numPlaces), max;
+		PlaceId *canGo = HvWhereCanIGo(hv, &numPlaces), max = canGo[0];
 		for (int i = 0; i < numPlaces; i++) {
 		    if (dist_prob[canGo[i]] == highestProb) max = canGo[i];
 		}
