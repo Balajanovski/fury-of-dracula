@@ -244,9 +244,9 @@ static inline bool can_continue_running(struct timespec start_time, struct times
 
 void* run_simulations(void* mcts_tree) {
     mcts_tree = (Tree) mcts_tree;
-
+    printf("run\n");
     unsigned int rand_generator_state = time(NULL) ^ getpid() ^ pthread_self();
-
+    printf("run\n");
     struct timespec start_time, curr_time;
     clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);
     clock_gettime(CLOCK_MONOTONIC_RAW, &curr_time);
@@ -278,7 +278,7 @@ void* run_simulations(void* mcts_tree) {
 }
 
 void decideDraculaMove(DraculaView dv) {
-    Round current_round = DvGetRound(dv);
+    //Round current_round = DvGetRound(dv);
     PlaceId best_move;
     Tree mcts_tree = create_new_tree();
     set_root_tree(mcts_tree, create_new_node_tree(create_game_state_item(dv, 0, 0, NOWHERE)));
@@ -307,5 +307,5 @@ void decideDraculaMove(DraculaView dv) {
     printf("Num iter: %d\n", num_iter);
 #endif
 
-	registerBestPlay(placeIdToAbbrev(best_move), "Mwahaha, you cannot defeat Count Monte Carlo!");
+	registerBestPlay((char *)placeIdToAbbrev(best_move), "Mwahaha, you cannot defeat Count Monte Carlo!");
 }

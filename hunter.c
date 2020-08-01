@@ -95,7 +95,7 @@ void decideHunterMove(HunterView hv)
 
         float dist_prob[NUM_REAL_PLACES];
 		for (int i = 0; i < NUM_REAL_PLACES; i++) dist_prob[i] = -1;
-    
+        
 		// Dracula's location was found just last round, probability is certain
 		// Otherwise, dist_prob[] is 0, set for gaussian calculation
 		if (bfs_cap == 0) {
@@ -103,9 +103,14 @@ void decideHunterMove(HunterView hv)
 			int PathLen;
         	PlaceId *path_to_dracula = HvGetShortestPathTo(hv, HvGetPlayer(hv), 
                                    drac_loc, &PathLen);
+            if (PathLen == 0) {
+                registerBestPlay((char *)placeIdToAbbrev(drac_loc), msg);
+                return;
+            }
         	registerBestPlay((char *)placeIdToAbbrev(path_to_dracula[0]), msg);
 	    	return;
 		} else {
+		    printf("runs\n");
 			dist_prob[(int)drac_loc] = 0;
 		}
 		
@@ -143,7 +148,7 @@ void decideHunterMove(HunterView hv)
 		// then matched with locations assigned to that radius.
 		float highestProb = 0;
 		for (int i = 1; i <= bfs_cap; i++) {
-			float prob = getRadiusProbrobability(i - 1, i, mean, variance, STDdev);
+			float prob = getRadiusProbability(i - 1, i, mean, variance, STDdev);
 			if (prob > highestProb) highestProb = prob;
 
 			for (int j = 0; j < NUM_REAL_PLACES; j++) {
@@ -173,6 +178,7 @@ void decideHunterMove(HunterView hv)
 				if(dist_prob[i] > 0){
 					PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathlength);	
 					printf("path to %s -- %d, first move will be %s\n",(char *)placeIdToName(i),pathlength,(char *)placeIdToName(shortest[0]));
+					max = shortest[0];
 				}
 			}		
 		}
@@ -181,41 +187,28 @@ void decideHunterMove(HunterView hv)
 		printf("%f\n",dist_prob[max]);
 		printf("///////////////Testing probability//////////////\n\n\n");
 
-		
 		//if player can reach highest probability in 1 move,
 		//find shortest path to highest probablity and move.
-		if(dist_prob[max] < 0){
+		/*if(dist_prob[max] < 0){
 			int pathlength;
 			int shortestlength = 1;
 			for(int i = 0; i < NUM_REAL_PLACES; i++){
 				if(dist_prob[i] > 0){
+				    printf("hello\n");
 					if(shortestlength > pathlength){
 					PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathlength);	
 					shortestlength = pathlength;
 					max = shortest[0];
+
 					}
 				}
 			}		
-		}
+		}*/
 
-		
 		PlaceId move = max;
 		registerBestPlay((char *)placeIdToAbbrev(move), msg);
 	    return;
-		
-		/*if (dist_prob[move] != 0) {
-	        registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	        return;
-	    } else {
-	        int max_counter = 0;
-	        PlaceId *maxes;
-	        PlaceId maxholder_max = 0;
-	        for (int j = 0; j < NUM_REAL_PLACES; j++) {
-	            if (dist_prob[j] > dist_prob[
-	        }
-	    
-	    
-	    }*/
+
 	}
 	
 }

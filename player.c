@@ -60,7 +60,8 @@ typedef DraculaView View;
 # define decideMove decideDraculaMove
 # define ViewFree DvFree
 
-# define xPastPlays "GKL.... SKL.... HGA.... MGA...."
+
+# define xPastPlays "GMA.... SCD.... HMI.... MCO.... DCD.V.. GAL.... SCD.... HMU.... MFR.... DHIT.... GMS.... SCD.... HVI.... MLI.... DD2T... GMR.... SCD.... HBD.... MBR.... DGAT... GGO.... SKL.... HKL.... MBD.... DCNT... GVE.... SSZ.... HSZ.... MSV.... "
 # define xMsgs { "", "", "", "" }
 
 #else
@@ -71,7 +72,7 @@ typedef HunterView View;
 # define decideMove decideHunterMove
 # define ViewFree HvFree
 
-# define xPastPlays "GHA.... SCD.... HMI.... MCO.... DC?.V.. GHA.... SGA.... HBC.... MSZ.... DZU.V..  "
+# define xPastPlays "GMA.... SCD.... HMI.... MCO.... DCD.V... GAL.... SCD.... HMU.... MFR.... DHIT.... GMS.... SCD.... HVI.... MLI.... DD2T.... GMR.... SCD.... HBD.... MBR.... DC?T... GGO.... SKL.... HKL.... MBD.... DC?T... GVE.... SSZ.... HSZ.... MSV.... "
 					
 # define xMsgs { "", "", "" }
 
