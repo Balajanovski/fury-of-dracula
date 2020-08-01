@@ -244,9 +244,7 @@ static inline bool can_continue_running(struct timespec start_time, struct times
 
 void* run_simulations(void* mcts_tree) {
     mcts_tree = (Tree) mcts_tree;
-    printf("run\n");
     unsigned int rand_generator_state = time(NULL) ^ getpid() ^ pthread_self();
-    printf("run\n");
     struct timespec start_time, curr_time;
     clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);
     clock_gettime(CLOCK_MONOTONIC_RAW, &curr_time);
