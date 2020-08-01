@@ -3,7 +3,7 @@
 #include <math.h>
 #include "Probability.h"
 
-#define INTEG_BARS 1000
+#define INTEG_BARS 2000
 
 double findMean(float values[], int size)
 {

@@ -75,7 +75,7 @@ void decideHunterMove(HunterView hv)
 	} else {
 		// Calculates a radius of his whereabouts according to the number
 		// of rounds that have passed since last known dracula location.
-		Round bfs_cap = curr_round - dracula_last_round;
+		Round bfs_cap = (curr_round - 1) - dracula_last_round;
         
         float distance[NUM_REAL_PLACES];
 		for (int i = 0; i < NUM_REAL_PLACES; i++) {
@@ -115,7 +115,7 @@ void decideHunterMove(HunterView hv)
 
 		// Combined, gaussian density probabilities are calculated for each radius
 		for (int i = 1; i <= bfs_cap; i++) {
-			float prob = getRadiusProbability(0, i, mean, variance, STDdev);
+			float prob = getRadiusProbability(i - 1, i, mean, variance, STDdev);
 
 			// Calculated probability is corresponded to the radius set by distance[]
 			for (int j = 0; j < NUM_REAL_PLACES; j++) {
