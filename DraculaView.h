@@ -187,4 +187,6 @@ char** DvComputePossibleMovesForPlayer(DraculaView dv, int* num_moves_returned);
 void DvAdvanceStateByMoves(DraculaView dv, char* play_string);
 GameCompletionState DvGameState(DraculaView dv);
 
+Player DvGetPlayer(DraculaView dv);
+
 #endif // !defined(FOD__DRACULA_VIEW_H_)

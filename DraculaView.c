@@ -193,7 +193,10 @@ PlaceId *DvWhereCanTheyGoByType(DraculaView dv, Player player,
                                 bool road, bool rail, bool boat,
                                 int *numReturnedLocs) {
     assert(dv != NULL);
-    if (DvGetPlayerLocation(dv, player) == NOWHERE) {
+
+    PlaceId player_loc = DvGetPlayerLocation(dv, player);
+
+    if (player_loc == NOWHERE) {
         *numReturnedLocs = 0;
         return NULL;
     }
@@ -387,8 +390,12 @@ char** DvComputePossibleMovesForPlayer(DraculaView dv, int* num_moves_returned) 
     return possible_moves;
 }
 
-GameCompletionState DvGameState(DraculaView dv) {
+inline GameCompletionState DvGameState(DraculaView dv) {
     return GvGameState(dv->gv);
+}
+
+inline Player DvGetPlayer(DraculaView dv) {
+    return GvGetPlayer(dv->gv);
 }
 
 ////////////////////////////////////////////////////////////////////////
