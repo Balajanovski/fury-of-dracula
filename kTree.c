@@ -1,12 +1,14 @@
-//Implementation of K-tree
-//ADT which accepts an arbitrary number of children per node
-//Using resizing array provided by James Balajan
-//By Finn Button
+// Implementation of K-tree
+// ADT which accepts an arbitrary number of children per node
+// Using resizing array provided by James Balajan
+// By Finn Button
+// Multithreading by James
 
 #include <stddef.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "kTree.h"
 
@@ -18,6 +20,8 @@ struct baseNode {
     struct baseNode *parent;
     int size;
     int capacity;
+
+    pthread_rwlock_t read_write_lock_node;
 };
 
 struct kTree {
@@ -38,6 +42,9 @@ void free_tree_node(Node old) {
     assert(old->children != NULL);
     assert(old->value.data != NULL);
     (*old->value.custom_free)(old->value.data);
+
+    pthread_rwlock_destroy(&old->read_write_lock_node);
+
     free(old->children);
     free(old);
 }
@@ -77,6 +84,9 @@ Node create_new_node_tree(Item value) {
 
     new->capacity = DEFAULT_CAPACITY;
     new->size = 0;
+
+    // Multithreading synchronization primitives
+    pthread_rwlock_init(&new->read_write_lock_node, NULL);
     
     return new;
 }
@@ -97,6 +107,8 @@ void set_root_tree(Tree t, Node n) {
 
 void add_new_child_tree(Node parent, Node child) {
     assert(parent != NULL);
+
+    // Add child to array of parent's children
     if (parent->size >= parent->capacity) {
         parent->capacity *= 2;
 
@@ -107,8 +119,9 @@ void add_new_child_tree(Node parent, Node child) {
         }
         parent->children = realloced_children;
     }
-
     parent->children[parent->size++] = child;
+
+    // Set child's parent pointer
     child->parent = parent;
 }
 
@@ -119,19 +132,44 @@ inline Node get_root_tree(Tree tree) {
 
 inline Node* get_children_tree(Node node) {
     assert(node != NULL);
-    return node->children;
+
+    Node* children = node->children;
+
+    return children;
 }
 
 inline int get_num_children_tree(Node node) {
     assert(node != NULL);
-    return node->size;
+
+    int num_children = node->size;
+
+    return num_children;
 }
 
 inline Node get_parent_tree(Node node) {
+    assert(node != NULL);
     return node->parent;
 }
 
 inline Item get_node_value_tree(Node n) {
     assert(n != NULL);
-    return n->value;
+
+    Item val = n->value;
+
+    return val;
+}
+
+inline void write_lock_node_tree(Node node) {
+    assert(node != NULL);
+    pthread_rwlock_wrlock(&node->read_write_lock_node);
+}
+
+inline void read_lock_node_tree(Node node) {
+    assert(node != NULL);
+    pthread_rwlock_rdlock(&node->read_write_lock_node);
+}
+
+inline void unlock_node_tree(Node node) {
+    assert(node != NULL);
+    pthread_rwlock_unlock(&node->read_write_lock_node);
 }

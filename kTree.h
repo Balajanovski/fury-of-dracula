@@ -32,5 +32,9 @@ int get_num_children_tree(Node node);
 
 Node get_parent_tree(Node node);
 
+void write_lock_node_tree(Node node);
+void read_lock_node_tree(Node node);
+void unlock_node_tree(Node node);
+
 
 #endif
