@@ -10,12 +10,13 @@
 ########################################################################
 
 CC = gcc
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g -pthread -O3
+LDFLAGS = -lz -pthread
 BINS = testGameView testHunterView testDraculaView testMap dracula hunter testKTree
 
 OBJS = GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o Queue.o MoveSet.o kTree.o
 
-LIBS = -lm
+LIBS = -lm -lrt -lpthread
 
 all: $(BINS)
 

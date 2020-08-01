@@ -120,14 +120,11 @@ PlaceId *DvGetTrapLocations(DraculaView dv, int *numTraps) {
 ////////////////////////////////////////////////////////////////////////
 // Making a Move
 
-PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves) {
+static PlaceId* get_valid_moves(DraculaView dv, int* num_returned_moves) {
     assert(dv != NULL);
+    assert(num_returned_moves != NULL);
 
-    PlaceId drac_location = DvGetPlayerLocation(dv, PLAYER_DRACULA);
-    if (drac_location == NOWHERE) {
-        *numReturnedMoves = 0;
-        return NULL;
-    }
+    Round curr_round = DvGetRound(dv);
 
     // Get all places dracula can travel to in a set data structure
     MoveSet reachable_locs = make_adjacent_locations_move_set(dv, PLAYER_DRACULA,
@@ -147,19 +144,33 @@ PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves) {
             }
         }
     }
-    insert_move_set(reachable_locs, HIDE);
+    if (curr_round > 0) {
+        insert_move_set(reachable_locs, HIDE);
+    }
 
     // Filter out any duplicate moves in Dracula's trail
     for (int trail_index = 0; trail_index < MIN(trail_size, TRAIL_SIZE-1); ++trail_index) {
         remove_move_set(reachable_locs, get_ith_latest_move_trail(trail, trail_index).move);
     }
 
-    *numReturnedMoves = get_size_move_set(reachable_locs);
+    *num_returned_moves = get_size_move_set(reachable_locs);
     PlaceId* filtered_reachable_locs = convert_to_array_move_set(reachable_locs);
 
     free_move_set(reachable_locs);
 
     return filtered_reachable_locs;
+}
+
+PlaceId *DvGetValidMoves(DraculaView dv, int *numReturnedMoves) {
+    assert(dv != NULL);
+
+    PlaceId drac_location = DvGetPlayerLocation(dv, PLAYER_DRACULA);
+    if (drac_location == NOWHERE) {
+        *numReturnedMoves = 0;
+        return NULL;
+    }
+
+    return get_valid_moves(dv, numReturnedMoves);
 }
 
 PlaceId *DvWhereCanIGo(DraculaView dv, int *numReturnedLocs) {
@@ -251,7 +262,7 @@ static char player_to_code(Player player) {
 
 static char** possible_moves_for_dracula(DraculaView dv, int* num_moves_returned) {
     int num_valid_moves = -1;
-    PlaceId* possible_moves = DvGetValidMoves(dv, &num_valid_moves);
+    PlaceId* possible_moves = get_valid_moves(dv, &num_valid_moves);
     assert(num_valid_moves != -1);
 
     if (num_valid_moves == 0) {
