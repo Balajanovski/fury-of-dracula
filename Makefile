@@ -10,12 +10,12 @@
 ########################################################################
 
 CC = gcc
-CFLAGS = -Wall -Werror -g
+CFLAGS = -Wall -g
 BINS = testGameView testHunterView testDraculaView testMap dracula hunter testKTree
 
 OBJS = GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o Queue.o MoveSet.o kTree.o
 
-LIBS =
+LIBS = -lm
 
 all: $(BINS)
 
@@ -26,6 +26,9 @@ playerDracula.o: player.c dracula.h Game.h DraculaView.h GameView.h Places.h
 	$(CC) $(CFLAGS) -DI_AM_DRACULA -c $< -o $@
 playerHunter.o: player.c hunter.h Game.h HunterView.h GameView.h Places.h
 	$(CC) $(CFLAGS) -c $< -o $@
+
+dracula.o: dracula.c dracula.h DraculaView.o $(OBJS)
+hunter.o: hunter.c hunter.h HunterView.o $(OBJS)
 
 testKTree: kTree.o
 testKTree.o: kTree.o
