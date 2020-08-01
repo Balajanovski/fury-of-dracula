@@ -327,7 +327,8 @@ static void simulate_past_plays(GameView gv, char* past_plays) {
     strcpy(past_plays_copy, past_plays);
 
     const char* delimiters = " \n";
-    char* move = strtok(past_plays_copy, delimiters);
+    char* strtok_save_ptr;
+    char* move = strtok_r(past_plays_copy, delimiters, &strtok_save_ptr);
 
     while (move != NULL) {
         Player move_player = player_id_from_move_string(move);
@@ -350,7 +351,7 @@ static void simulate_past_plays(GameView gv, char* past_plays) {
         push_back_location_dynamic_array(gv->player_location_histories[move_player], new_loc);
         ++gv->move_number;
 
-        move = strtok(NULL, delimiters);
+        move = strtok_r(NULL, delimiters, &strtok_save_ptr);
     }
 
     free(past_plays_copy);
