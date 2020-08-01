@@ -143,7 +143,7 @@ void decideHunterMove(HunterView hv)
 		// then matched with locations assigned to that radius.
 		float highestProb = 0;
 		for (int i = 1; i <= bfs_cap; i++) {
-			float prob = getRadiusProbrobability(i - 1, i, mean, variance, STDdev);
+			float prob = getRadiusProbability(i - 1, i, mean, variance, STDdev);
 			if (prob > highestProb) highestProb = prob;
 
 			for (int j = 0; j < NUM_REAL_PLACES; j++) {
