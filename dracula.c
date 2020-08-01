@@ -17,7 +17,7 @@
 #include "Game.h"
 #include "kTree.h"
 
-#define NANO_SECOND_END_BUFFER 90000000.0f
+#define NANO_SECOND_END_BUFFER 1.4e8
 #define EXPLORATION_PARAMETER 1.41421356237f
 #define NUMBER_OF_THREADS 5
 
@@ -234,6 +234,14 @@ static Node get_child_with_maximum_score(Node root) {
 ////////////
 // Actual AI
 
+#ifndef NDEBUG
+int num_iter = 0;
+#endif
+
+static inline bool can_continue_running(struct timespec start_time, struct timespec curr_time) {
+    return (curr_time.tv_sec * 1e9 + curr_time.tv_nsec) - (start_time.tv_sec * 1e9 + start_time.tv_nsec) < (TURN_LIMIT_MSECS * 1e6) - NANO_SECOND_END_BUFFER;
+}
+
 void* run_simulations(void* mcts_tree) {
     mcts_tree = (Tree) mcts_tree;
 
@@ -242,13 +250,21 @@ void* run_simulations(void* mcts_tree) {
     struct timespec start_time, curr_time;
     clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);
     clock_gettime(CLOCK_MONOTONIC_RAW, &curr_time);
-    while ((curr_time.tv_sec * 1e9 + curr_time.tv_nsec) - (start_time.tv_sec * 1e9 + start_time.tv_nsec) < (TURN_LIMIT_MSECS * 1e6) - NANO_SECOND_END_BUFFER) {
+    while (can_continue_running(start_time, curr_time)) {
+#ifndef NDEBUG
+        __atomic_fetch_add(&num_iter, 1, __ATOMIC_SEQ_CST);
+#endif
+
         Node promising_node = select_promising_node(mcts_tree);
-        GameState* n_state = (GameState*) (get_node_value_tree(promising_node).data);
 
         int num_expanded_child_nodes = -1;
         Node* expanded_child_nodes = expand_node(promising_node, &num_expanded_child_nodes);
         assert(num_expanded_child_nodes != -1);
+
+        clock_gettime(CLOCK_MONOTONIC_RAW, &curr_time);
+        if (!can_continue_running(start_time, curr_time)) {
+            break;
+        }
 
         Node node_to_explore = select_child_to_playout(expanded_child_nodes, num_expanded_child_nodes, &rand_generator_state);
         GameCompletionState playout_result = simulate_random_playout(node_to_explore, &rand_generator_state);
@@ -286,6 +302,10 @@ void decideDraculaMove(DraculaView dv) {
     best_move = best_node_state->move;
 
     free(mcts_tree);
+
+#ifndef NDEBUG
+    printf("Num iter: %d\n", num_iter);
+#endif
 
 	registerBestPlay(placeIdToAbbrev(best_move), "Mwahaha, you cannot defeat Count Monte Carlo!");
 }

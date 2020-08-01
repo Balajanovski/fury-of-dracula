@@ -10,7 +10,11 @@
 ########################################################################
 
 CC = gcc
-CFLAGS = -Wall -g -pthread -O3
+CFLAGS = -Wall -g -pthread
+
+# For our submissions, set the c flags to
+# CFLAGS = -Wall -pthread -O3 -DNDEBUG
+
 LDFLAGS = -lz -pthread
 BINS = testGameView testHunterView testDraculaView testMap dracula hunter testKTree
 
