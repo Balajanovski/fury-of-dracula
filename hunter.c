@@ -95,9 +95,6 @@ void decideHunterMove(HunterView hv)
                                    drac_loc, &PathLen);
         registerBestPlay((char *)placeIdToAbbrev(path_to_dracula[0]), msg);
 	    return;
-	
-	
->>>>>>> ed2cfd0171059380552a127d5265424150094603
 	} else {
 		// Calculates a radius of his whereabouts according to the number
 		// of rounds that have passed since last known dracula location.
