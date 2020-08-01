@@ -339,6 +339,11 @@ static void simulate_past_plays(GameView gv, char* past_plays) {
         PlaceId movement = placeAbbrevToId(move_abbrev);
         free(move_abbrev);
 
+        if (movement == NOWHERE) {
+            fprintf(stderr, "Invalid move to NOWHERE made for player %d in round %d (Maybe there is a typo in the play string?). Aborting...\n", move_player, GvGetRound(gv));
+            exit(EXIT_FAILURE);
+        }
+
         PlaceId new_loc = calculate_absolute_player_location(gv, move_player, movement, 0);
 
         if (IS_DRACULA(move_player)) {

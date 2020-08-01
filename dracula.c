@@ -123,6 +123,21 @@ static PlaceId get_move_location_id(char* full_move_string) {
 static Node* expand_node(Node node_to_expand, int* num_expanded_child_nodes) {
     write_lock_node_tree(node_to_expand);
 
+    // Handle case for if two threads come to expanding the same node at the same time
+    // only take the first one's results
+    int num_current_node_to_expand_children = get_num_children_tree(node_to_expand);
+    if (num_current_node_to_expand_children > 0) {
+        *num_expanded_child_nodes = num_current_node_to_expand_children;
+
+        Node* curr_children = get_children_tree(node_to_expand);
+        Node* children = malloc(sizeof(Node) * num_current_node_to_expand_children);
+        for (int i = 0; i < num_current_node_to_expand_children; ++i) {
+            children[i] = curr_children[i];
+        }
+
+        return children;
+    }
+
     GameState* node_to_expand_game_state = (GameState*) get_node_value_tree(node_to_expand).data;
     GameCompletionState completion_state = DvGameState(node_to_expand_game_state->current_view);
 
@@ -227,6 +242,10 @@ static Node get_child_with_maximum_score(Node root) {
         }
     }
 
+#ifndef NDEBUG
+    printf("Win ratio of best move: %f\n", max_score);
+#endif
+
     assert(max_child != NULL);
     return max_child;
 }
@@ -245,7 +264,7 @@ static inline bool can_continue_running(struct timespec start_time, struct times
 void* run_simulations(void* mcts_tree) {
     mcts_tree = (Tree) mcts_tree;
 
-    unsigned int rand_generator_state = time(NULL) ^ getpid() ^ pthread_self();
+    unsigned int rand_generator_state = (long) time(NULL) ^ (long) getpid() ^ (long) pthread_self();
 
     struct timespec start_time, curr_time;
     clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);
@@ -278,7 +297,12 @@ void* run_simulations(void* mcts_tree) {
 }
 
 void decideDraculaMove(DraculaView dv) {
-    Round current_round = DvGetRound(dv);
+    Player current_player = DvGetPlayer(dv);
+    if (current_player != PLAYER_DRACULA) {
+        fprintf(stderr, "Invalid past plays string provided to initial dracula view, where the person to make a move is not dracula. Aborting...\n");
+        exit(EXIT_FAILURE);
+    }
+
     PlaceId best_move;
     Tree mcts_tree = create_new_tree();
     set_root_tree(mcts_tree, create_new_node_tree(create_game_state_item(dv, 0, 0, NOWHERE)));
