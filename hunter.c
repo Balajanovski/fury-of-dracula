@@ -50,45 +50,54 @@ void decideHunterMove(HunterView hv)
 	        registerBestPlay("MI", msg);
 	        return;
 	    }
-	// } else if (curr_round < 6) { // Can't reveal end of trail yet
-	//     if (curr_player == PLAYER_DR_SEWARD) {
-	//         int pathlen = 0;
-	//         PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
-	//                                 EDINBURGH, &pathlen); 
-	//         PlaceId move = shortestPath[0];                
-	//         registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	//         return;
-	//     } else if (curr_player == PLAYER_LORD_GODALMING) {
-	//         int pathlen = 0;
-	//         PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
-	//                                 CASTLE_DRACULA, &pathlen); 
-	//         PlaceId move = shortestPath[0];                
-	//         registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	//         return;
-	//     } else if (curr_player == PLAYER_MINA_HARKER) {
-	//         int pathlen = 0;
-	//         PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
-	//                                 LISBON, &pathlen); 
-	//         PlaceId move = shortestPath[0];                
-	//         registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	//         return;
-	//     } else if (curr_player == PLAYER_VAN_HELSING) {
-    //         int pathlen = 0;
-	//         PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
-	//                                 ATHENS, &pathlen); 
-	//         PlaceId move = shortestPath[0];                
-	//         registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	//         return;
-	//     }
+	} else if (curr_round < 6 && drac_loc == NOWHERE) { // Can't reveal end of trail yet
+	    if (curr_player == PLAYER_DR_SEWARD) {
+	        int pathlen = 0;
+	        PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
+	                                EDINBURGH, &pathlen); 
+	        PlaceId move = shortestPath[0];                
+	        registerBestPlay((char *)placeIdToAbbrev(move), msg);
+	        return;
+	    } else if (curr_player == PLAYER_LORD_GODALMING) {
+	        int pathlen = 0;
+	        PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
+	                                CASTLE_DRACULA, &pathlen); 
+	        PlaceId move = shortestPath[0];                
+	        registerBestPlay((char *)placeIdToAbbrev(move), msg);
+	        return;
+	    } else if (curr_player == PLAYER_MINA_HARKER) {
+	        int pathlen = 0;
+	        PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
+	                                LISBON, &pathlen); 
+	        PlaceId move = shortestPath[0];                
+	        registerBestPlay((char *)placeIdToAbbrev(move), msg);
+	        return;
+	    } else if (curr_player == PLAYER_VAN_HELSING) {
+            int pathlen = 0;
+	        PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
+	                                ATHENS, &pathlen); 
+	        PlaceId move = shortestPath[0];                
+	        registerBestPlay((char *)placeIdToAbbrev(move), msg);
+	        return;
+	    }
 	
-	// } else if (drac_loc == NOWHERE) { 
-	//     PlaceId move = curr_loc;
-	//     registerBestPlay((char *)placeIdToAbbrev(move), msg);
-    //     return;
-	// } else if ((curr_round - dracula_last_round) >= 12) {
-	//     PlaceId move = curr_loc;
-	//     registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	//     return;
+	} else if (drac_loc == NOWHERE) { 
+	    PlaceId move = curr_loc;
+	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
+        return;
+	} else if ((curr_round - dracula_last_round) >= 12) {
+	    PlaceId move = curr_loc;
+	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
+	    return;
+	} else if (dracula_last_round == (curr_round-1)) {
+	    int PathLen;
+        PlaceId *path_to_dracula = HvGetShortestPathTo(hv, HvGetPlayer(hv), 
+                                   drac_loc, &PathLen);
+        registerBestPlay((char *)placeIdToAbbrev(path_to_dracula[0]), msg);
+	    return;
+	
+	
+>>>>>>> ed2cfd0171059380552a127d5265424150094603
 	} else {
 		// Calculates a radius of his whereabouts according to the number
 		// of rounds that have passed since last known dracula location.
