@@ -50,7 +50,7 @@ void decideHunterMove(HunterView hv)
 	        registerBestPlay("MI", msg);
 	        return;
 	    }
-	} else if (curr_round < 6) { // Can't reveal end of trail yet
+	} else if (curr_round < 6 && drac_loc == NOWHERE) { // Can't reveal end of trail yet
 	    if (curr_player == PLAYER_DR_SEWARD) {
 	        int pathlen = 0;
 	        PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
@@ -89,6 +89,14 @@ void decideHunterMove(HunterView hv)
 	    PlaceId move = curr_loc;
 	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
 	    return;
+	} else if (dracula_last_round == (curr_round-1)) {
+	    int PathLen;
+        PlaceId *path_to_dracula = HvGetShortestPathTo(hv, HvGetPlayer(hv), 
+                                   drac_loc, &PathLen);
+        registerBestPlay((char *)placeIdToAbbrev(path_to_dracula[0]), msg);
+	    return;
+	
+	
 	} else {
 		// Calculates a radius of his whereabouts according to the number
 		// of rounds that have passed since last known dracula location.
