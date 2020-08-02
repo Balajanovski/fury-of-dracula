@@ -189,7 +189,7 @@ void decideHunterMove(HunterView hv)
 
 		//if player can reach highest probability in 1 move,
 		//find shortest path to highest probablity and move.
-		/*if(dist_prob[max] < 0){
+		if(dist_prob[max] < 0){
 			int pathlength;
 			int shortestlength = 1;
 			for(int i = 0; i < NUM_REAL_PLACES; i++){
@@ -203,7 +203,7 @@ void decideHunterMove(HunterView hv)
 					}
 				}
 			}		
-		}*/
+		}
 
 		PlaceId move = max;
 		registerBestPlay((char *)placeIdToAbbrev(move), msg);
