@@ -186,6 +186,12 @@ void decideHunterMove(HunterView hv)
 		printf("Hunter is at %s\n",(char *)placeIdToName(curr_loc));
 		printf("%f\n",dist_prob[max]);
 		printf("///////////////Testing probability//////////////\n\n\n");
+		
+		//getting maximum probability
+		double max_probability = 0;
+		for(int i = 0; i < NUM_REAL_PLACES; i++){
+			if(dist_prob[i] > max_probability) max_probability = dist_prob[i];
+		}
 
 		//if player can reach highest probability in 1 move,
 		//find shortest path to highest probablity and move.
@@ -193,13 +199,11 @@ void decideHunterMove(HunterView hv)
 			int pathlength;
 			int shortestlength = 1;
 			for(int i = 0; i < NUM_REAL_PLACES; i++){
-				if(dist_prob[i] > 0){
-				    printf("hello\n");
+				if(dist_prob[i] >= max_probability){
 					if(shortestlength > pathlength){
 					PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathlength);	
 					shortestlength = pathlength;
 					max = shortest[0];
-
 					}
 				}
 			}		
