@@ -164,7 +164,7 @@ void decideHunterMove(HunterView hv)
 		//if player can reach highest probability in 1 move,
 		//find shortest path to highest probablity and move.
 		if(dist_prob[max] < 0){
-			int pathlength = 0;;
+			int pathlength = 0;
 			int shortestlength = 1;
 			for(int i = 0; i < NUM_REAL_PLACES; i++){
 				if(dist_prob[i] >= highestProb){
