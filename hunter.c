@@ -110,7 +110,6 @@ void decideHunterMove(HunterView hv)
         	registerBestPlay((char *)placeIdToAbbrev(path_to_dracula[0]), msg);
 	    	return;
 		} else {
-		    printf("runs\n");
 			dist_prob[(int)drac_loc] = 0;
 		}
 		
@@ -162,44 +161,13 @@ void decideHunterMove(HunterView hv)
 		for (int i = 0; i < numPlaces; i++) {
 		    if (dist_prob[canGo[i]] == highestProb) max = canGo[i];
 		}
-
-		printf("\n\n///////////////Testing probability//////////////\n");
-		printf("Dracula was at %s %d moves ago\n",(char *)placeIdToName(drac_loc), bfs_cap);
-		for(int i = 0; i < NUM_REAL_PLACES; i ++){
-			if(dist_prob[i] > 0){
-				printf("%s --- %f\n",(char *)placeIdToName(i),dist_prob[i]);
-			}
-			
-		}
-
-		if(dist_prob[max] < 0){
-			int pathlength;
-			for(int i = 0; i < NUM_REAL_PLACES; i++){
-				if(dist_prob[i] > 0){
-					PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathlength);	
-					printf("path to %s -- %d, first move will be %s\n",(char *)placeIdToName(i),pathlength,(char *)placeIdToName(shortest[0]));
-					max = shortest[0];
-				}
-			}		
-		}
-
-		printf("Hunter is at %s\n",(char *)placeIdToName(curr_loc));
-		printf("%f\n",dist_prob[max]);
-		printf("///////////////Testing probability//////////////\n\n\n");
-		
-		//getting maximum probability
-		double max_probability = 0;
-		for(int i = 0; i < NUM_REAL_PLACES; i++){
-			if(dist_prob[i] > max_probability) max_probability = dist_prob[i];
-		}
-
 		//if player can reach highest probability in 1 move,
 		//find shortest path to highest probablity and move.
 		if(dist_prob[max] < 0){
-			int pathlength;
+			int pathlength = 0;;
 			int shortestlength = 1;
 			for(int i = 0; i < NUM_REAL_PLACES; i++){
-				if(dist_prob[i] >= max_probability){
+				if(dist_prob[i] >= highestProb){
 					if(shortestlength > pathlength){
 					PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathlength);	
 					shortestlength = pathlength;
@@ -208,7 +176,6 @@ void decideHunterMove(HunterView hv)
 				}
 			}		
 		}
-
 		PlaceId move = max;
 		registerBestPlay((char *)placeIdToAbbrev(move), msg);
 	    return;
