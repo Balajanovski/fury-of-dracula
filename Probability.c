@@ -3,7 +3,7 @@
 #include <math.h>
 #include "Probability.h"
 
-#define INTEG_BARS 2000
+#define INTEG_BARS 1000
 
 double findMean(float values[], int size)
 {
@@ -44,7 +44,7 @@ double getRadiusProbability(double loB, double upB, double mean, double vari, do
     double areaProb = 0;
     double h = (upB - loB) / INTEG_BARS;
     for (double i = loB; i < upB; i += h) {
-        areaProb += getGaussianDensity(i, mean, vari, STDdev) * (upB - loB) / INTEG_BARS;
+        areaProb += getGaussianDensity(i, mean, vari, STDdev) * h;
     }
     return areaProb;
 }
