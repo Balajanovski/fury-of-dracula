@@ -24,7 +24,7 @@
 
 void decideHunterMove(HunterView hv)
 {
-	/*// Check if hunter knows dracula's location
+	// Check if hunter knows dracula's location
 	Round dracula_last_round = -1;
 	PlaceId drac_loc = HvGetLastKnownDraculaLocation(hv,&dracula_last_round);
 	
@@ -33,6 +33,14 @@ void decideHunterMove(HunterView hv)
 	Player curr_player = HvGetPlayer(hv); // players 0,1,2,3,4 (typedef enum)
 	PlaceId curr_loc = HvGetPlayerLocation(hv,curr_player);
 	char *msg = "dummy message";
+
+	// Get location occupied by other hunters
+	PlaceId occupied[3], enPt = 0;
+	for (int i = 0; i < NUM_PLAYERS - 1; i++) {
+		if (i == curr_player) continue;
+		occupied[enPt] = HvGetPlayerLocation(hv,i);
+		enPt++;
+	}
 
 	// Fixed moves for round 0, hunters locations are spread out
 	if (curr_round < 1) {
@@ -75,13 +83,10 @@ void decideHunterMove(HunterView hv)
 	    PlaceId move = curr_loc;
 	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
 		return;
-	} */
+	}
 
 	// Preemptive stage: bfs_cap observes if radius probabilities
 	// are certain enough for hunters to search for Dracula.
-	int curr_round = 11, dracula_last_round = 2, curr_player = PLAYER_VAN_HELSING, curr_loc = CASTLE_DRACULA;
-	int drac_loc = EDINBURGH;
-	char *msg = "dummy message";
 	Round bfs_cap = curr_round - dracula_last_round - 1;
 	 
 	PlaceId move, *path_to_dracula;
@@ -147,10 +152,17 @@ void decideHunterMove(HunterView hv)
 		}
 	}
 
-	// Checks if hunter can reach most probable location in 1 move
+	// Checks if hunter can reach probable locations within their vicinity
+	// Locations not their current one or occupied by other hunters are allowed 
 	float mostProb = 0; int numPlaces = -1;
 	PlaceId *canGo = HvWhereCanIGo(hv, &numPlaces), max = canGo[0];
-	for (int i = 0; i < numPlaces; i++) {
+	for (int i = 1; i < numPlaces; i++) {		
+		int isOccup = 0;
+		for (int j = 0; j < 3; j++) {
+			if (occupied[i] == canGo[i]) isOccup = 1;
+		}
+		if (isOccup == 1) continue;
+		if (dist_prob[canGo[i]] == curr_loc) continue;
 		
 		if (mostProb < dist_prob[canGo[i]]) {
 			mostProb = dist_prob[canGo[i]];
@@ -161,18 +173,18 @@ void decideHunterMove(HunterView hv)
 	// Hunter moves closer to the higher probability locations in the shortest
 	// possible way; Not near any 'probable move' (ALL LOCATIONS ARE -1),
 	if (dist_prob[max] < 0) { 
-		int pathLen = -1, shortestLen = 999;
-		for (int i = 0; i < NUM_REAL_PLACES; i++){
-			if (dist_prob[i] == highestProb) {
+	int pathLen = -1, shortestLen = 999;
+	for (int i = 0; i < NUM_REAL_PLACES; i++) {
+		if (dist_prob[i] == highestProb && i != curr_loc) {
+			shortestLen = pathLen;
+			if (pathLen < shortestLen) {
 				PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathLen);
 				shortestLen = pathLen;
-				if (pathLen < shortestLen) {
-					shortestLen = pathLen;
-					max = shortest[0];
-				}
+				max = shortest[0];
 			}
-		
-		}	
+		}
+	
+	}	
 	}
 	
 	registerBestPlay((char *)placeIdToAbbrev(max), msg);
