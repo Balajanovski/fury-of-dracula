@@ -59,7 +59,7 @@ void decideHunterMove(HunterView hv)
 		}
 		return;
 	} else if (curr_round < 6 && drac_loc == NOWHERE) { // Can't reveal end of trail yet
-		PlaceId loc;
+		PlaceId loc = -1;
 		switch (curr_player) 
 		{
 		    case PLAYER_DR_SEWARD : 
