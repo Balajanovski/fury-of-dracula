@@ -96,7 +96,6 @@ void decideHunterMove(HunterView hv)
 		path_to_dracula = HvGetShortestPathTo(hv, curr_player, drac_loc, &PathLen);
 		if (PathLen != 0) move = path_to_dracula[0];
 		
-		free(path_to_dracula);
 		registerBestPlay((char *)placeIdToAbbrev(move), msg);
 		return;		
 	} else if (bfs_cap == 9) { // Low certainty of whereabout: Probabilities are spreading
