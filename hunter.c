@@ -170,7 +170,7 @@ void decideHunterMove(HunterView hv)
 	float highestProb = 0;
 	for (int i = 1; i <= bfs_cap; i++) {
 		float prob = getRadiusProbability(i - 1, i, mean, variance, STDdev);
-		printf("Probability at %d \u2013\u2013 %lf\n", i, prob);
+
 		if (prob > highestProb) highestProb = prob;
 
 		for (int j = 0; j < NUM_REAL_PLACES; j++) {
