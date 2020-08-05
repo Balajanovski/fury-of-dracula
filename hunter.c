@@ -199,18 +199,17 @@ void decideHunterMove(HunterView hv)
 	// Hunter moves closer to the higher probability locations in the shortest
 	// possible way; Not near any 'probable move' (ALL LOCATIONS ARE -1),
 	if (dist_prob[max] < 0) { 
-	int pathLen = -1, shortestLen = 999;
-	for (int i = 0; i < NUM_REAL_PLACES; i++) {
-		if (dist_prob[i] == highestProb && i != curr_loc) {
-			shortestLen = pathLen;
-			if (pathLen < shortestLen) {
-				PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathLen);
-				shortestLen = pathLen;
-				max = shortest[0];
+		int pathLen = -1, shortestLen = 999;
+		for (int i = 0; i < NUM_REAL_PLACES; i++) {
+			if (dist_prob[i] == highestProb && i != curr_loc) {
+				if (pathLen < shortestLen) {
+					PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathLen);
+					shortestLen = pathLen;
+					max = shortest[0];
+				}
 			}
-		}
-	
-	}	
+		
+		}	
 	}
 	
 			int valid = 0;
