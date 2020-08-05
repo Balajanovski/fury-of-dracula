@@ -59,7 +59,7 @@ void decideHunterMove(HunterView hv)
 		}
 		return;
 	} else if (curr_round < 6 && drac_loc == NOWHERE) { // Can't reveal end of trail yet
-		PlaceId loc = -1;
+		PlaceId loc;
 		switch (curr_player) 
 		{
 		    case PLAYER_DR_SEWARD : 
@@ -77,6 +77,19 @@ void decideHunterMove(HunterView hv)
 		int pathLen = 0;
 		PlaceId *shortestPath = HvGetShortestPathTo(hv, curr_player, loc, &pathLen);
 		PlaceId move = shortestPath[0];
+		
+		int valid = 0;
+		int number_valid;
+		PlaceId *validMoves = HvWhereCanIGo(hv, &number_valid);
+		for (int i = 0; i < number_valid; i++) {
+		    if (validMoves[i] == shortestPath[0]) {
+		        valid = 1;
+		    }  
+		}
+		if (valid == 0) {
+		    move = validMoves[curr_round % number_valid];
+		}
+		
 		registerBestPlay((char *)placeIdToAbbrev(move), msg);
 		return;
 	} else if (drac_loc == NOWHERE) { 
@@ -95,6 +108,20 @@ void decideHunterMove(HunterView hv)
 		move = curr_loc;
 		path_to_dracula = HvGetShortestPathTo(hv, curr_player, drac_loc, &PathLen);
 		if (PathLen != 0) move = path_to_dracula[0];
+		
+		free(path_to_dracula);
+		
+		int valid = 0;
+		int number_valid;
+		PlaceId *validMoves = HvWhereCanIGo(hv, &number_valid);
+		for (int i = 0; i < number_valid; i++) {
+		    if (validMoves[i] == move) {
+		        valid = 1;
+		    }  
+		}
+		if (valid == 0) {
+		    move = validMoves[curr_round % number_valid];
+		}
 		
 		registerBestPlay((char *)placeIdToAbbrev(move), msg);
 		return;		
@@ -143,6 +170,7 @@ void decideHunterMove(HunterView hv)
 	float highestProb = 0;
 	for (int i = 1; i <= bfs_cap; i++) {
 		float prob = getRadiusProbability(i - 1, i, mean, variance, STDdev);
+		printf("Probability at %d \u2013\u2013 %lf\n", i, prob);
 		if (prob > highestProb) highestProb = prob;
 
 		for (int j = 0; j < NUM_REAL_PLACES; j++) {
@@ -184,6 +212,18 @@ void decideHunterMove(HunterView hv)
 	
 	}	
 	}
+	
+			int valid = 0;
+		int number_valid;
+		PlaceId *validMoves = HvWhereCanIGo(hv, &number_valid);
+		for (int i = 0; i < number_valid; i++) {
+		    if (validMoves[i] == max) {
+		        valid = 1;
+		    }  
+		}
+		if (valid == 0) {
+		    max = validMoves[curr_round % number_valid];
+		}
 	
 	registerBestPlay((char *)placeIdToAbbrev(max), msg);
 
