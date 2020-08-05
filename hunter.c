@@ -32,7 +32,9 @@ void decideHunterMove(HunterView hv)
 	Round curr_round = HvGetRound(hv);
 	Player curr_player = HvGetPlayer(hv); // players 0,1,2,3,4 (typedef enum)
 	PlaceId curr_loc = HvGetPlayerLocation(hv,curr_player);
+	int health = HvGetHealth(hv,curr_player);
 	char *msg = "dummy message";
+	
 
 	// Get location occupied by other hunters
 	PlaceId occupied[3], enPt = 0;
@@ -97,7 +99,12 @@ void decideHunterMove(HunterView hv)
 	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
 		return;
 	}
-
+	// Check current hunter's health point before decide moves
+	if(health <= 0){
+		PlaceId move = placeAbbrevToId("JM");
+		registerBestPlay((char *)placeIdToAbbrev(move), msg);
+		return;
+	}
 	// Preemptive stage: bfs_cap observes if radius probabilities
 	// are certain enough for hunters to search for Dracula.
 	Round bfs_cap = curr_round - dracula_last_round - 1;
