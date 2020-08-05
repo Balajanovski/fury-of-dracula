@@ -34,181 +34,197 @@ void decideHunterMove(HunterView hv)
 	PlaceId curr_loc = HvGetPlayerLocation(hv,curr_player);
 	char *msg = "dummy message";
 
-	// Fixed moves for round 0, should spread the hunters out well
+	// Get location occupied by other hunters
+	PlaceId occupied[3], enPt = 0;
+	for (int i = 0; i < NUM_PLAYERS - 1; i++) {
+		if (i == curr_player) continue;
+		occupied[enPt] = HvGetPlayerLocation(hv,i);
+		enPt++;
+	}
+
+	// Fixed moves for round 0, hunters locations are spread out
 	if (curr_round < 1) {
-	    if (curr_player == PLAYER_DR_SEWARD) {
-	        registerBestPlay("CD", msg);
-	        return;
-	    } else if (curr_player == PLAYER_LORD_GODALMING) {
-	        registerBestPlay("MA", msg);
-	        return;
-	    } else if (curr_player == PLAYER_MINA_HARKER) {
-	        registerBestPlay("CO", msg);
-	        return;
-	    } else if (curr_player == PLAYER_VAN_HELSING) {
-	        registerBestPlay("MI", msg);
-	        return;
-	    }
+		switch (curr_player) 
+		{
+		    case PLAYER_DR_SEWARD : 
+				registerBestPlay("CD", msg); break;
+		    case PLAYER_LORD_GODALMING : 
+				registerBestPlay("MA", msg); break;
+		    case PLAYER_MINA_HARKER :
+		        registerBestPlay("CO", msg); break;
+		    case PLAYER_VAN_HELSING : 
+		        registerBestPlay("MI", msg); break;
+		    default :
+		        printf("Invalid player");
+		}
+		return;
 	} else if (curr_round < 6 && drac_loc == NOWHERE) { // Can't reveal end of trail yet
-	    if (curr_player == PLAYER_DR_SEWARD) {
-	        int pathlen = 0;
-	        PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
-	                                EDINBURGH, &pathlen); 
-	        PlaceId move = shortestPath[0];                
-	        registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	        return;
-	    } else if (curr_player == PLAYER_LORD_GODALMING) {
-	        int pathlen = 0;
-	        PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
-	                                CASTLE_DRACULA, &pathlen); 
-	        PlaceId move = shortestPath[0];                
-	        registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	        return;
-	    } else if (curr_player == PLAYER_MINA_HARKER) {
-	        int pathlen = 0;
-	        PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
-	                                LISBON, &pathlen); 
-	        PlaceId move = shortestPath[0];                
-	        registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	        return;
-	    } else if (curr_player == PLAYER_VAN_HELSING) {
-            int pathlen = 0;
-	        PlaceId *shortestPath = HvGetShortestPathTo(hv, PLAYER_DR_SEWARD, 
-	                                ATHENS, &pathlen); 
-	        PlaceId move = shortestPath[0];                
-	        registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	        return;
-	    }
-	
+		PlaceId loc;
+		switch (curr_player) 
+		{
+		    case PLAYER_DR_SEWARD : 
+				loc = EDINBURGH; break;
+		    case PLAYER_LORD_GODALMING : 
+				loc = CASTLE_DRACULA; break;
+		    case PLAYER_MINA_HARKER :
+		        loc = LISBON; break;
+		    case PLAYER_VAN_HELSING : 
+		        loc = ATHENS; break;
+		    default :
+		        printf("Invalid player");
+		}
+
+		int pathLen = 0;
+		PlaceId *shortestPath = HvGetShortestPathTo(hv, curr_player, loc, &pathLen);
+		PlaceId move = shortestPath[0];
+		
+		int valid = 0;
+		int number_valid;
+		PlaceId *validMoves = HvWhereCanIGo(hv, &number_valid);
+		for (int i = 0; i < number_valid; i++) {
+		    if (validMoves[i] == shortestPath[0]) {
+		        valid = 1;
+		    }  
+		}
+		if (valid == 0) {
+		    move = validMoves[curr_round % number_valid];
+		}
+		
+		registerBestPlay((char *)placeIdToAbbrev(move), msg);
+		return;
 	} else if (drac_loc == NOWHERE) { 
 	    PlaceId move = curr_loc;
 	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
-        return;
-	} else if ((curr_round - dracula_last_round) >= 12) {
-	    PlaceId move = curr_loc;
-	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	    return;
-	} else {
-		// Calculates a radius of his whereabouts according to the number
-		// of rounds that have passed since last known dracula location.
-		Round bfs_cap = curr_round - dracula_last_round - 1;
+		return;
+	}
 
-        float dist_prob[NUM_REAL_PLACES];
-		for (int i = 0; i < NUM_REAL_PLACES; i++) dist_prob[i] = -1;
-        
-		// Dracula's location was found just last round, probability is certain
-		// Otherwise, dist_prob[] is 0, set for gaussian calculation
-		if (bfs_cap == 0) {
-			dist_prob[(int)drac_loc] = 1;
-			int PathLen;
-        	PlaceId *path_to_dracula = HvGetShortestPathTo(hv, HvGetPlayer(hv), 
-                                   drac_loc, &PathLen);
-            if (PathLen == 0) {
-                registerBestPlay((char *)placeIdToAbbrev(drac_loc), msg);
-                return;
-            }
-        	registerBestPlay((char *)placeIdToAbbrev(path_to_dracula[0]), msg);
-	    	return;
-		} else {
-		    printf("runs\n");
-			dist_prob[(int)drac_loc] = 0;
+	// Preemptive stage: bfs_cap observes if radius probabilities
+	// are certain enough for hunters to search for Dracula.
+	Round bfs_cap = curr_round - dracula_last_round - 1;
+	 
+	PlaceId move, *path_to_dracula;
+	if (bfs_cap <= 0) { // High certainity: Dracula's location was found in the last round
+		int PathLen;
+		move = curr_loc;
+		path_to_dracula = HvGetShortestPathTo(hv, curr_player, drac_loc, &PathLen);
+		if (PathLen != 0) move = path_to_dracula[0];
+		
+		free(path_to_dracula);
+		
+		int valid = 0;
+		int number_valid;
+		PlaceId *validMoves = HvWhereCanIGo(hv, &number_valid);
+		for (int i = 0; i < number_valid; i++) {
+		    if (validMoves[i] == move) {
+		        valid = 1;
+		    }  
+		}
+		if (valid == 0) {
+		    move = validMoves[curr_round % number_valid];
 		}
 		
-		// Outer loop determines how far dracula can travel
-        for (int i = 1; i <= bfs_cap; i++) {
-            // Inside loops through dist_prob array to check for latest places he could be
-            for (int j = 0; j < NUM_REAL_PLACES; j++) {
-                // If a place in the dist_prob array could have been visited in previous
-                // round to what we are checking
-                if (dist_prob[j] == i - 1) {
-					int numReturnedLocs;
-                    PlaceId *reachable = HvWhereCanDraculaGoByRound(hv, 
-                                         PLAYER_DRACULA, (PlaceId)j,
-                                         &numReturnedLocs,
-                                         (dracula_last_round + i));
-                    
-                    // Loop through reachable and update dist_prob array                    
-                    for (int k = 0; k < numReturnedLocs; k++) {
-                        if (dist_prob[reachable[k]] < 0) {
-                            dist_prob[reachable[k]] = i;
-                        }
-                    }
-                    
-                }
-            }
-		}
-		
-		// With elements ≥ 0 in the dist_prob_array, a mean and
-		// standard deviation, variance can be inferred upon.
-		double mean = findMean(dist_prob, NUM_REAL_PLACES);
-		double variance = findVariance(dist_prob, mean, NUM_REAL_PLACES);
-		double STDdev = findSTDdeviation(variance);
-
-		// A gaussian probability is calculated for a radius. It is
-		// then matched with locations assigned to that radius.
-		float highestProb = 0;
-		for (int i = 1; i <= bfs_cap; i++) {
-			float prob = getRadiusProbability(i - 1, i, mean, variance, STDdev);
-			if (prob > highestProb) highestProb = prob;
-
-			for (int j = 0; j < NUM_REAL_PLACES; j++) {
-				if (dist_prob[j] == i) dist_prob[j] = prob;
-			}
-		}
-
-		// Checks if hunter can reach most probable location in 1 move
-		int numPlaces = -1;
-		PlaceId *canGo = HvWhereCanIGo(hv, &numPlaces), max = canGo[0];
-		for (int i = 0; i < numPlaces; i++) {
-		    if (dist_prob[canGo[i]] == highestProb) max = canGo[i];
-		}
-
-		printf("\n\n///////////////Testing probability//////////////\n");
-		printf("Dracula was at %s %d moves ago\n",(char *)placeIdToName(drac_loc), bfs_cap);
-		for(int i = 0; i < NUM_REAL_PLACES; i ++){
-			if(dist_prob[i] > 0){
-				printf("%s --- %f\n",(char *)placeIdToName(i),dist_prob[i]);
-			}
-			
-		}
-
-		if(dist_prob[max] < 0){
-			int pathlength;
-			for(int i = 0; i < NUM_REAL_PLACES; i++){
-				if(dist_prob[i] > 0){
-					PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathlength);	
-					printf("path to %s -- %d, first move will be %s\n",(char *)placeIdToName(i),pathlength,(char *)placeIdToName(shortest[0]));
-					max = shortest[0];
-				}
-			}		
-		}
-
-		printf("Hunter is at %s\n",(char *)placeIdToName(curr_loc));
-		printf("%f\n",dist_prob[max]);
-		printf("///////////////Testing probability//////////////\n\n\n");
-
-		//if player can reach highest probability in 1 move,
-		//find shortest path to highest probablity and move.
-		if(dist_prob[max] < 0){
-			int pathlength;
-			int shortestlength = 1;
-			for(int i = 0; i < NUM_REAL_PLACES; i++){
-				if(dist_prob[i] > 0){
-				    printf("hello\n");
-					if(shortestlength > pathlength){
-					PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathlength);	
-					shortestlength = pathlength;
-					max = shortest[0];
-
-					}
-				}
-			}		
-		}
-
-		PlaceId move = max;
 		registerBestPlay((char *)placeIdToAbbrev(move), msg);
-	    return;
-
+		return;		
+	} else if (bfs_cap == 9) { // Low certainty of whereabout: Probabilities are spreading
+		move = curr_loc;
+		registerBestPlay((char *)placeIdToAbbrev(move), msg);
+		return;
 	}
 	
+	// Calculating stage: dist_prob[] is used to determine radius of movement according
+	// to bfs_cap (max dist. dracula could travel due to round changes)
+	float dist_prob[NUM_REAL_PLACES];
+	for (int i = 0; i < NUM_REAL_PLACES; i++) dist_prob[i] = -1;
+
+	dist_prob[(int)drac_loc] = 0;
+	
+	for (int i = 1; i <= bfs_cap; i++) {
+		// Inside loops through dist_prob array to check for latest places he could be
+		for (int j = 0; j < NUM_REAL_PLACES; j++) {
+			// If a place in the dist_prob array could have been visited in previous
+			// round to what we are checking
+			if (dist_prob[j] == i - 1) {
+				int numReturnedLocs;
+				PlaceId *reachable = HvWhereCanDraculaGoByRound(hv, PLAYER_DRACULA, (PlaceId)j,
+										&numReturnedLocs, (dracula_last_round + i));
+				
+				// Loop through reachable and update dist_prob array                    
+				for (int k = 0; k < numReturnedLocs; k++) {
+					if (dist_prob[reachable[k]] < 0) {
+						dist_prob[reachable[k]] = i;
+					}
+				}
+				
+			}
+		}
+	}
+	
+	// With non-negative elements in dist_prob[], a mean, s
+	// standard deviation, variance can be inferred upon.
+	double mean = findMean(dist_prob, NUM_REAL_PLACES);
+	double variance = findVariance(dist_prob, mean, NUM_REAL_PLACES);
+	double STDdev = findSTDdeviation(variance);
+
+	// A gaussian probability is calculated for a radius. It is
+	// then matched with locations assigned to that radius.
+	float highestProb = 0;
+	for (int i = 1; i <= bfs_cap; i++) {
+		float prob = getRadiusProbability(i - 1, i, mean, variance, STDdev);
+		printf("Probability at %d \u2013\u2013 %lf\n", i, prob);
+		if (prob > highestProb) highestProb = prob;
+
+		for (int j = 0; j < NUM_REAL_PLACES; j++) {
+			if (dist_prob[j] == i) dist_prob[j] = prob;
+		}
+	}
+
+	// Checks if hunter can reach probable locations within their vicinity
+	// Locations not their current one or occupied by other hunters are allowed 
+	float mostProb = 0; int numPlaces = -1;
+	PlaceId *canGo = HvWhereCanIGo(hv, &numPlaces), max = canGo[0];
+	for (int i = 1; i < numPlaces; i++) {		
+		int isOccup = 0;
+		for (int j = 0; j < 3; j++) {
+			if (occupied[i] == canGo[i]) isOccup = 1;
+		}
+		if (isOccup == 1) continue;
+		if (dist_prob[canGo[i]] == curr_loc) continue;
+		
+		if (mostProb < dist_prob[canGo[i]]) {
+			mostProb = dist_prob[canGo[i]];
+			max = canGo[i];
+		}
+	}
+
+	// Hunter moves closer to the higher probability locations in the shortest
+	// possible way; Not near any 'probable move' (ALL LOCATIONS ARE -1),
+	if (dist_prob[max] < 0) { 
+	int pathLen = -1, shortestLen = 999;
+	for (int i = 0; i < NUM_REAL_PLACES; i++) {
+		if (dist_prob[i] == highestProb && i != curr_loc) {
+			shortestLen = pathLen;
+			if (pathLen < shortestLen) {
+				PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathLen);
+				shortestLen = pathLen;
+				max = shortest[0];
+			}
+		}
+	
+	}	
+	}
+	
+			int valid = 0;
+		int number_valid;
+		PlaceId *validMoves = HvWhereCanIGo(hv, &number_valid);
+		for (int i = 0; i < number_valid; i++) {
+		    if (validMoves[i] == max) {
+		        valid = 1;
+		    }  
+		}
+		if (valid == 0) {
+		    max = validMoves[curr_round % number_valid];
+		}
+	
+	registerBestPlay((char *)placeIdToAbbrev(max), msg);
+
 }
