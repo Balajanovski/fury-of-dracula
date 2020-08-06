@@ -12,12 +12,12 @@
 CC = gcc
 
 # For debugging, set the c flags to
-# CFLAGS = -Wall -g -pthread
+CFLAGS = -Wall -g -pthread -ggdb3
 
 # For our submissions, set the c flags to
-CFLAGS = -Wall -pthread -O3 -DNDEBUG
+# CFLAGS = -Wall -pthread -O3 -DNDEBUG
 
-LDFLAGS = -lz -pthread
+LDFLAGS = -lz -pthread -ggdb3 -O3
 BINS = testGameView testHunterView testDraculaView testMap dracula hunter testKTree
 
 OBJS = GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o Queue.o MoveSet.o kTree.o

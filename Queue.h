@@ -8,8 +8,6 @@
 
 typedef struct QueueRep *Queue;
 
-typedef struct QueueNode *Node;
-
 //create a new queue
 Queue NewQueue (void);
 
