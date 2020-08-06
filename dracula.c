@@ -23,7 +23,8 @@
 #define NANO_SECOND_END_BUFFER 1.4e8
 #define EXPLORATION_PARAMETER 1.41421356237f
 #define NUMBER_OF_THREADS 1
-#define HEURISTIC_RATIO_THRESHOLD 0.90f
+#define DISTANCE_NORMALIZATION_BASE 16.0f
+#define MAX_PLAY_DEPTH 50
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
@@ -139,8 +140,10 @@ static float min_distance_from_hunter(GameState* state) {
     return min_distance;
 }
 
-static inline float tree_culling_heuristic(Player parent_player, float min_dist_from_hunter) {
-    float heuristic_score = (min_dist_from_hunter + 1.0f);
+static inline double tree_culling_heuristic(Player parent_player, double min_dist_from_hunter, int dracula_health, int game_score) {
+    double heuristic_score = ((min_dist_from_hunter) / DISTANCE_NORMALIZATION_BASE * 100.0) +
+            ((double) dracula_health / GAME_START_BLOOD_POINTS * 10.0) +
+            ((GAME_START_SCORE - (double) game_score) / GAME_START_SCORE * 1.0);
     if (parent_player != PLAYER_DRACULA) {
         heuristic_score = 1.0f / heuristic_score;
     }
@@ -215,10 +218,6 @@ static void expand_node(Node node_to_expand) {
     if (num_current_node_to_expand_children <= 0) {
         GameState* node_to_expand_game_state = (GameState*) get_node_value_tree(node_to_expand).data;
         GameCompletionState completion_state = DvGameState(node_to_expand_game_state->current_view);
-        Player parent_player = DvGetPlayer(node_to_expand_game_state->current_view);
-
-        float parent_min_dist_from_hunter = min_distance_from_hunter(node_to_expand_game_state);
-        float parent_heuristic_score = tree_culling_heuristic(parent_player, parent_min_dist_from_hunter);
 
         if (completion_state == GAME_NOT_OVER) {
             int num_moves_returned = -1;
@@ -232,20 +231,13 @@ static void expand_node(Node node_to_expand) {
                 PlaceId move_location_id = get_move_location_id(move_buffer[move_index]);
 
                 Item expanded_game_state_item = create_game_state_item(new_move_state, 0, 0, move_location_id, false);
-                GameState* expanded_node_state = (GameState*) expanded_game_state_item.data;
 
-                float expanded_min_dist_from_hunter = min_distance_from_hunter(expanded_node_state);
-                float expanded_heuristic_score = tree_culling_heuristic(parent_player, expanded_min_dist_from_hunter);
-
-                if (expanded_heuristic_score < parent_heuristic_score * HEURISTIC_RATIO_THRESHOLD) {
-                    custom_game_state_free(expanded_node_state);
-                } else {
-                    Node expanded_child = create_new_node_tree(expanded_game_state_item);
-                    add_new_child_tree(node_to_expand, expanded_child);
-                }
+                Node expanded_child = create_new_node_tree(expanded_game_state_item);
+                add_new_child_tree(node_to_expand, expanded_child);
 
                 free(move_buffer[move_index]);
             }
+
             free(move_buffer);
         }
     }
@@ -260,7 +252,7 @@ static int simulate_random_playout(Node node_to_explore, unsigned int* rand_gene
     GameCompletionState game_completed_yet = DvGameState(current_game_view);
 
     int playout_depth = 0;
-    while (game_completed_yet == GAME_NOT_OVER) {
+    while (game_completed_yet == GAME_NOT_OVER && playout_depth < MAX_PLAY_DEPTH) {
         int num_moves_returned = -1;
         Player current_player = DvGetPlayer(current_game_view);
         char** move_buffer = DvComputePossibleMovesForPlayer(current_game_view, &num_moves_returned);
@@ -273,7 +265,9 @@ static int simulate_random_playout(Node node_to_explore, unsigned int* rand_gene
             DraculaView game_view_for_move = DvMakeCopy(current_game_view);
             DvAdvanceStateByMoves(game_view_for_move, move_buffer[move]);
 
-            heuristic_scores_per_move[move] = tree_culling_heuristic(current_player, min_distance_from_hunter_view(game_view_for_move));
+            heuristic_scores_per_move[move] = tree_culling_heuristic(current_player, min_distance_from_hunter_view(game_view_for_move),
+                                                                     DvGetHealth(game_view_for_move, PLAYER_DRACULA),
+                                                                     DvGetScore(game_view_for_move));
 
             DvFree(game_view_for_move);
         }

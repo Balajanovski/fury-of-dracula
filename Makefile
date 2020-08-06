@@ -17,12 +17,10 @@ CC = gcc
 # For our submissions, set the c flags to
 CFLAGS = -Wall -pthread -O3 -DNDEBUG
 
-LDFLAGS = -lz -pthread
+LDFLAGS = -lz -pthread -lm
 BINS = testGameView testHunterView testDraculaView testMap dracula hunter testKTree
 
 OBJS = GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o Queue.o MoveSet.o kTree.o
-
-LIBS = -lm -lrt -lpthread
 
 all: $(BINS)
 
