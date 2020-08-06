@@ -28,8 +28,9 @@ struct gameView {
     bool player_death_states[NUM_PLAYERS];
 	int player_healths[NUM_PLAYERS];
 	Map map;
-	int move_number;
+	unsigned int move_number;
 	int score;
+	bool is_copy;
 
 	DraculaTrail dracula_trail;
 	LocationDynamicArray player_location_histories[NUM_PLAYERS];
@@ -190,6 +191,7 @@ static PlaceId apply_hunter_encounters(GameView gv, Player curr_player, PlaceId 
 
 static PlaceId apply_dracula_encounters_and_actions(GameView gv, PlaceId move, PlaceId location, const char* encounters_and_actions_str) {
     gv->score -= SCORE_LOSS_DRACULA_TURN;
+    gv->score = MAX(gv->score, 0);
 
     DraculaMove dracula_move;
     dracula_move.location = location;
@@ -229,8 +231,6 @@ static PlaceId apply_dracula_encounters_and_actions(GameView gv, PlaceId move, P
             case 'V':
             {
                 vampire_matured = true;
-
-                gv->score -= SCORE_LOSS_VAMPIRE_MATURES;
                 gv->vampire_location = NOWHERE;
             }
                 break;
@@ -244,6 +244,7 @@ static PlaceId apply_dracula_encounters_and_actions(GameView gv, PlaceId move, P
     } if (vampire_matured) {
         gv->vampire_location = NOWHERE;
         gv->score -= SCORE_LOSS_VAMPIRE_MATURES;
+        gv->score = MAX(gv->score, 0);
     }
 
     // Handle Dracula's health
@@ -444,6 +445,7 @@ GameView GvNew(char *past_plays, Message messages[]) {
         fprintf(stderr, "Couldn't allocate map!\n");
         exit(EXIT_FAILURE);
     }
+    new->is_copy = false;
 
 	set_default_gamestate(new);
 
@@ -470,7 +472,11 @@ void GvFree(GameView gv) {
     }
 
     free_trail(gv->dracula_trail);
-    MapFree(gv->map);
+
+    if (!gv->is_copy) {
+        MapFree(gv->map);
+    }
+
 	free(gv);
 }
 
@@ -645,7 +651,7 @@ DraculaTrail GvGetDraculaTrail(GameView gv) {
 }
 
 GameView GvMakeCopy(GameView gv) {
-    GameView new_gv = GvNew("", NULL);
+    GameView new_gv = malloc(sizeof(*new_gv));
     if (new_gv == NULL) {
         fprintf(stderr, "Could not copy GameView. Aborting...\n");
         exit(EXIT_FAILURE);
@@ -664,6 +670,7 @@ GameView GvMakeCopy(GameView gv) {
     new_gv->move_number = gv->move_number;
     new_gv->score = gv->score;
     new_gv->vampire_location = gv->vampire_location;
+    new_gv->is_copy = true;
 
     return new_gv;
 }
