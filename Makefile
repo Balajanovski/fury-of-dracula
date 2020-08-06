@@ -12,7 +12,7 @@
 CC = gcc
 
 # For debugging, set the c flags to
-# CFLAGS = -Wall -g -pthread -ggdb3
+# CFLAGS = -Wall -g -pthread
 
 # For our submissions, set the c flags to
 CFLAGS = -Wall -pthread -O3 -DNDEBUG

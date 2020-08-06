@@ -244,11 +244,10 @@ static void expand_node(Node node_to_expand) {
 
             if (expanded_heuristic_score < parent_heuristic_score * HEURISTIC_RATIO_THRESHOLD) {
                 custom_game_state_free(expanded_node_state);
-                continue;
+            } else {
+                Node expanded_child = create_new_node_tree(expanded_game_state_item);
+                add_new_child_tree(node_to_expand, expanded_child);
             }
-
-            Node expanded_child = create_new_node_tree(expanded_game_state_item);
-            add_new_child_tree(node_to_expand, expanded_child);
 
             free(move_buffer[move_index]);
         }
