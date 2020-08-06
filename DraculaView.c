@@ -144,13 +144,14 @@ static PlaceId* get_valid_moves(DraculaView dv, int* num_returned_moves) {
             }
         }
     }
-    if (curr_round > 0) {
+    if (curr_round > 0 && !placeIsSea(DvGetPlayerLocation(dv, PLAYER_DRACULA))) {
         insert_move_set(reachable_locs, HIDE);
     }
 
     // Filter out any duplicate moves in Dracula's trail
     for (int trail_index = 0; trail_index < MIN(trail_size, TRAIL_SIZE-1); ++trail_index) {
-        remove_move_set(reachable_locs, get_ith_latest_move_trail(trail, trail_index).move);
+        PlaceId ith_latest_trail_move = get_ith_latest_move_trail(trail, trail_index).move;
+        remove_move_set(reachable_locs, ith_latest_trail_move);
     }
 
     *num_returned_moves = get_size_move_set(reachable_locs);
