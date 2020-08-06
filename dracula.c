@@ -212,46 +212,42 @@ static void expand_node(Node node_to_expand) {
     // Handle case for if two threads come to expanding the same node at the same time
     // only take the first one's results
     int num_current_node_to_expand_children = get_num_children_tree(node_to_expand);
-    if (num_current_node_to_expand_children > 0) {
-        unlock_node_tree(node_to_expand);
+    if (num_current_node_to_expand_children <= 0) {
+        GameState* node_to_expand_game_state = (GameState*) get_node_value_tree(node_to_expand).data;
+        GameCompletionState completion_state = DvGameState(node_to_expand_game_state->current_view);
+        Player parent_player = DvGetPlayer(node_to_expand_game_state->current_view);
 
-        return;
-    }
+        float parent_min_dist_from_hunter = min_distance_from_hunter(node_to_expand_game_state);
+        float parent_heuristic_score = tree_culling_heuristic(parent_player, parent_min_dist_from_hunter);
 
-    GameState* node_to_expand_game_state = (GameState*) get_node_value_tree(node_to_expand).data;
-    GameCompletionState completion_state = DvGameState(node_to_expand_game_state->current_view);
-    Player parent_player = DvGetPlayer(node_to_expand_game_state->current_view);
+        if (completion_state == GAME_NOT_OVER) {
+            int num_moves_returned = -1;
+            char** move_buffer = DvComputePossibleMovesForPlayer(node_to_expand_game_state->current_view, &num_moves_returned);
+            assert(num_moves_returned != -1);
 
-    float parent_min_dist_from_hunter = min_distance_from_hunter(node_to_expand_game_state);
-    float parent_heuristic_score = tree_culling_heuristic(parent_player, parent_min_dist_from_hunter);
+            for (int move_index = 0; move_index < num_moves_returned; ++move_index) {
+                DraculaView new_move_state = DvMakeCopy(node_to_expand_game_state->current_view);
+                DvAdvanceStateByMoves(new_move_state, move_buffer[move_index]);
 
-    if (completion_state == GAME_NOT_OVER) {
-        int num_moves_returned = -1;
-        char** move_buffer = DvComputePossibleMovesForPlayer(node_to_expand_game_state->current_view, &num_moves_returned);
-        assert(num_moves_returned != -1);
+                PlaceId move_location_id = get_move_location_id(move_buffer[move_index]);
 
-        for (int move_index = 0; move_index < num_moves_returned; ++move_index) {
-            DraculaView new_move_state = DvMakeCopy(node_to_expand_game_state->current_view);
-            DvAdvanceStateByMoves(new_move_state, move_buffer[move_index]);
+                Item expanded_game_state_item = create_game_state_item(new_move_state, 0, 0, move_location_id, false);
+                GameState* expanded_node_state = (GameState*) expanded_game_state_item.data;
 
-            PlaceId move_location_id = get_move_location_id(move_buffer[move_index]);
+                float expanded_min_dist_from_hunter = min_distance_from_hunter(expanded_node_state);
+                float expanded_heuristic_score = tree_culling_heuristic(parent_player, expanded_min_dist_from_hunter);
 
-            Item expanded_game_state_item = create_game_state_item(new_move_state, 0, 0, move_location_id, false);
-            GameState* expanded_node_state = (GameState*) expanded_game_state_item.data;
+                if (expanded_heuristic_score < parent_heuristic_score * HEURISTIC_RATIO_THRESHOLD) {
+                    custom_game_state_free(expanded_node_state);
+                } else {
+                    Node expanded_child = create_new_node_tree(expanded_game_state_item);
+                    add_new_child_tree(node_to_expand, expanded_child);
+                }
 
-            float expanded_min_dist_from_hunter = min_distance_from_hunter(expanded_node_state);
-            float expanded_heuristic_score = tree_culling_heuristic(parent_player, expanded_min_dist_from_hunter);
-
-            if (expanded_heuristic_score < parent_heuristic_score * HEURISTIC_RATIO_THRESHOLD) {
-                custom_game_state_free(expanded_node_state);
-            } else {
-                Node expanded_child = create_new_node_tree(expanded_game_state_item);
-                add_new_child_tree(node_to_expand, expanded_child);
+                free(move_buffer[move_index]);
             }
-
-            free(move_buffer[move_index]);
+            free(move_buffer);
         }
-        free(move_buffer);
     }
 
     unlock_node_tree(node_to_expand);
@@ -282,7 +278,7 @@ static int simulate_random_playout(Node node_to_explore, unsigned int* rand_gene
             DvFree(game_view_for_move);
         }
         float random_heuristic_score_index = (float) rand_r(rand_generator_state)/((float) RAND_MAX / aggregate_heuristic_scores);
-        char* random_move;
+        char* random_move = move_buffer[0];
         for (int move = 0; move < num_moves_returned; ++move) {
             if (heuristic_scores_per_move[move] > random_heuristic_score_index) {
                 random_move = move_buffer[move];
