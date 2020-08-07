@@ -189,4 +189,9 @@ GameCompletionState DvGameState(DraculaView dv);
 
 Player DvGetPlayer(DraculaView dv);
 
+PlaceId *DvWhereCanTheyGoByTypeFromLocationAndRound(DraculaView dv, Player player,
+                                                    Round round, PlaceId player_loc,
+                                                    bool road, bool rail, bool boat,
+                                                    int *numReturnedLocs);
+
 #endif // !defined(FOD__DRACULA_VIEW_H_)

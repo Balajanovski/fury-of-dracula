@@ -144,13 +144,14 @@ static PlaceId* get_valid_moves(DraculaView dv, int* num_returned_moves) {
             }
         }
     }
-    if (curr_round > 0) {
+    if (curr_round > 0 && !placeIsSea(DvGetPlayerLocation(dv, PLAYER_DRACULA))) {
         insert_move_set(reachable_locs, HIDE);
     }
 
     // Filter out any duplicate moves in Dracula's trail
     for (int trail_index = 0; trail_index < MIN(trail_size, TRAIL_SIZE-1); ++trail_index) {
-        remove_move_set(reachable_locs, get_ith_latest_move_trail(trail, trail_index).move);
+        PlaceId ith_latest_trail_move = get_ith_latest_move_trail(trail, trail_index).move;
+        remove_move_set(reachable_locs, ith_latest_trail_move);
     }
 
     *num_returned_moves = get_size_move_set(reachable_locs);
@@ -189,26 +190,23 @@ PlaceId *DvWhereCanTheyGo(DraculaView dv, Player player, int *numReturnedLocs) {
     return DvWhereCanTheyGoByType(dv, player, true, player != PLAYER_DRACULA, true, numReturnedLocs);
 }
 
-PlaceId *DvWhereCanTheyGoByType(DraculaView dv, Player player,
-                                bool road, bool rail, bool boat,
-                                int *numReturnedLocs) {
+PlaceId *DvWhereCanTheyGoByTypeFromLocationAndRound(DraculaView dv, Player player,
+                                                    Round round, PlaceId player_loc,
+                                                    bool road, bool rail, bool boat,
+                                                    int *numReturnedLocs) {
     assert(dv != NULL);
-
-    PlaceId player_loc = DvGetPlayerLocation(dv, player);
 
     if (player_loc == NOWHERE) {
         *numReturnedLocs = 0;
         return NULL;
     }
 
-    int adjusted_round = DvGetRound(dv) + (player < PLAYER_DRACULA);
-
     // No special cases for dracula's trail need to be handled if the player is a hunter
     if (player != PLAYER_DRACULA) {
-        return GvGetReachableByType(dv->gv, player, adjusted_round, DvGetPlayerLocation(dv, player), road, rail, boat, numReturnedLocs);
+        return GvGetReachableByType(dv->gv, player, round, DvGetPlayerLocation(dv, player), road, rail, boat, numReturnedLocs);
     }
 
-    MoveSet reachable_locs = make_adjacent_locations_move_set(dv, player, DvGetPlayerLocation(dv, player), adjusted_round, road, false, boat);
+    MoveSet reachable_locs = make_adjacent_locations_move_set(dv, player, DvGetPlayerLocation(dv, player), round, road, false, boat);
 
     // Filter out any duplicate moves in Dracula's trail
     DraculaTrail trail = GvGetDraculaTrail(dv->gv);
@@ -223,6 +221,16 @@ PlaceId *DvWhereCanTheyGoByType(DraculaView dv, Player player,
     free_move_set(reachable_locs);
 
     return filtered_reachable_locs;
+}
+
+PlaceId *DvWhereCanTheyGoByType(DraculaView dv, Player player,
+                                bool road, bool rail, bool boat,
+                                int *numReturnedLocs) {
+    assert(dv != NULL);
+
+    PlaceId player_loc = DvGetPlayerLocation(dv, player);
+    int adjusted_round = DvGetRound(dv) + (player < PLAYER_DRACULA);
+    return DvWhereCanTheyGoByTypeFromLocationAndRound(dv, player, adjusted_round, player_loc, road, rail, boat, numReturnedLocs);
 }
 
 DraculaView DvMakeCopy(DraculaView dv) {

@@ -11,7 +11,7 @@
 
 typedef struct QueueNode {
 	PlaceId place;
-	Node next;
+	struct QueueNode* next;
 } QueueNode;
 
 typedef struct QueueRep {
@@ -30,7 +30,7 @@ Queue NewQueue (void)
 	return new;
 }
 
-static Node NewNode(PlaceId place) {
+static QueueNode* NewNode(PlaceId place) {
     
     QueueNode *new = malloc(sizeof(*new));
     assert(new != NULL);

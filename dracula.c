@@ -11,15 +11,22 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <limits.h>
 
 #include "dracula.h"
 #include "DraculaView.h"
 #include "Game.h"
 #include "kTree.h"
+#include "Queue.h"
+#include "MoveSet.h"
 
 #define NANO_SECOND_END_BUFFER 1.4e8
 #define EXPLORATION_PARAMETER 1.41421356237f
-#define NUMBER_OF_THREADS 5
+#define NUMBER_OF_THREADS 1
+#define DISTANCE_NORMALIZATION_BASE 16.0f
+#define MAX_PLAY_DEPTH 50
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
 
 
 /////////////////////
@@ -27,8 +34,10 @@
 
 typedef struct {
     DraculaView current_view;
-    int wins;
-    int visits;
+    int aggregate_dracula_score; // Dracula score is defined as start score - current gamestate score
+    int num_games;
+    bool min_dist_cache_filled;
+    float min_dist_from_hunter;
     PlaceId move;
 } GameState;
 
@@ -38,15 +47,16 @@ static void custom_game_state_free(void* value) {
     free(state);
 }
 
-static Item create_game_state_item(DraculaView value, int wins, int visits, PlaceId move) {
+static Item create_game_state_item(DraculaView view, int aggregate_dracula_score, int num_games, PlaceId move, bool copy_view) {
     Item new_item;
-    new_item.data = malloc(sizeof(GameState*));
+    new_item.data = malloc(sizeof(GameState));
 
     GameState* new_item_state = (GameState*) new_item.data;
-    new_item_state->current_view = DvMakeCopy(value);
-    new_item_state->wins = wins;
-    new_item_state->visits = visits;
+    new_item_state->current_view = copy_view ? DvMakeCopy(view) : view;
+    new_item_state->aggregate_dracula_score = aggregate_dracula_score;
+    new_item_state->num_games = num_games;
     new_item_state->move = move;
+    new_item_state->min_dist_cache_filled = false;
     new_item.custom_free = &custom_game_state_free;
 
     return new_item;
@@ -55,12 +65,90 @@ static Item create_game_state_item(DraculaView value, int wins, int visits, Plac
 //////////////////////////////////
 // Math helpers
 
-static float compute_uct(int wins, int visits, int total_parent_node_simulations) {
-    if (visits == 0) {
+static float compute_uct(int aggregate_dracula_score, int num_games, int total_parent_node_simulations) {
+    if (num_games == 0) {
         return FLT_MAX;
     }
 
-    return (float) wins / (float) visits + EXPLORATION_PARAMETER * sqrtf(2.f * logf((float) total_parent_node_simulations) / (float) visits);
+    return (float) aggregate_dracula_score / (float) num_games + EXPLORATION_PARAMETER * sqrtf(2.f * logf((float) total_parent_node_simulations) / (float) num_games);
+}
+
+//////////////////////////////////
+// Heuristics
+
+static float min_distance_from_hunter_view(DraculaView dv) {
+    PlaceId dracula_loc = DvGetPlayerLocation(dv, PLAYER_DRACULA);
+
+    int min_distance = INT_MAX;
+    for (Player hunter = 0; hunter < PLAYER_DRACULA; ++hunter) {
+        Round original_round = DvGetRound(dv);
+
+        Queue bfs_queue = NewQueue();
+        AddtoQueue(bfs_queue, DvGetPlayerLocation(dv, hunter));
+        MoveSet visited_set = new_move_set();
+
+        int current_hunter_to_dracula_distance_in_rounds = 0;
+        bool found_dracula = false;
+        while (QueueSize(bfs_queue) > 0 && !found_dracula) {
+            int q_size = QueueSize(bfs_queue);
+
+            for (int i = 0; i < q_size; ++i) {
+                PlaceId current_pos = RemovefromQueue(bfs_queue);
+                if (current_pos == dracula_loc) {
+                    found_dracula = true;
+                    break;
+                }
+                if (is_move_in_set(visited_set, current_pos)) {
+                    continue;
+                }
+                insert_move_set(visited_set, current_pos);
+
+                int num_returned_places;
+                PlaceId* places = DvWhereCanTheyGoByTypeFromLocationAndRound(dv, hunter, original_round + current_hunter_to_dracula_distance_in_rounds + 1, current_pos, true, true, true, &num_returned_places);
+                for (int place_index = 0; place_index < num_returned_places; ++place_index) {
+                    AddtoQueue(bfs_queue, places[place_index]);
+                }
+                free(places);
+            }
+
+            ++current_hunter_to_dracula_distance_in_rounds;
+        }
+
+        free_move_set(visited_set);
+
+        min_distance = MIN(min_distance, current_hunter_to_dracula_distance_in_rounds);
+        FreeQueue(bfs_queue);
+    }
+
+    return (float) min_distance;
+}
+
+// Min distance from a hunter in moves
+static float min_distance_from_hunter(GameState* state) {
+    // If result cached simply return
+    if (state->min_dist_cache_filled) {
+        return state->min_dist_from_hunter;
+    }
+
+    DraculaView dv = state->current_view;
+    float min_distance = min_distance_from_hunter_view(dv);
+
+    // Update cache
+    state->min_dist_from_hunter = min_distance;
+    state->min_dist_cache_filled = true;
+
+    return min_distance;
+}
+
+static inline double tree_culling_heuristic(Player parent_player, double min_dist_from_hunter, int dracula_health, int game_score) {
+    double heuristic_score = ((min_dist_from_hunter) / DISTANCE_NORMALIZATION_BASE * 100.0) +
+            ((double) dracula_health / GAME_START_BLOOD_POINTS * 10.0) +
+            ((GAME_START_SCORE - (double) game_score) / GAME_START_SCORE * 1.0);
+    if (parent_player != PLAYER_DRACULA) {
+        heuristic_score = 1.0f / heuristic_score;
+    }
+
+    return heuristic_score;
 }
 
 //////////////////////////////////
@@ -69,6 +157,7 @@ static float compute_uct(int wins, int visits, int total_parent_node_simulations
 static Node uct_select_child(Node node) {
     read_lock_node_tree(node);
     GameState* curr_node_game_state = (GameState*) get_node_value_tree(node).data;
+
     Node* node_children = get_children_tree(node);
     int num_children = get_num_children_tree(node);
     assert(num_children > 0);
@@ -79,7 +168,7 @@ static Node uct_select_child(Node node) {
         read_lock_node_tree(node_children[i]);
         GameState* child_node_state = (GameState*) get_node_value_tree(node_children[i]).data;
 
-        float uct = compute_uct(child_node_state->wins, child_node_state->visits, curr_node_game_state->visits);
+        float uct = compute_uct(child_node_state->aggregate_dracula_score, child_node_state->num_games, curr_node_game_state->num_games);
         if (uct > max_uct) {
             node_with_max_uct = node_children[i];
             max_uct = uct;
@@ -92,7 +181,7 @@ static Node uct_select_child(Node node) {
 }
 
 static Node select_promising_node(Tree mcts_tree) {
-    Node curr_node = get_root_tree(mcts_tree); // Bug: Root is sometimes NULL?
+    Node curr_node = get_root_tree(mcts_tree);
 
     read_lock_node_tree(curr_node);
     int curr_node_children = get_num_children_tree(curr_node);
@@ -111,7 +200,7 @@ static Node select_promising_node(Tree mcts_tree) {
 }
 
 static PlaceId get_move_location_id(char* full_move_string) {
-    char* move_location_abbreviation = malloc(sizeof(char) * 3);
+    char *move_location_abbreviation = malloc(sizeof(char) * 3);
     strncpy(move_location_abbreviation, full_move_string + 1, 2);
     move_location_abbreviation[2] = '\0';
     PlaceId move_location_id = placeAbbrevToId(move_location_abbreviation);
@@ -120,83 +209,93 @@ static PlaceId get_move_location_id(char* full_move_string) {
     return move_location_id;
 }
 
-static Node* expand_node(Node node_to_expand, int* num_expanded_child_nodes) {
+static void expand_node(Node node_to_expand) {
     write_lock_node_tree(node_to_expand);
 
     // Handle case for if two threads come to expanding the same node at the same time
     // only take the first one's results
     int num_current_node_to_expand_children = get_num_children_tree(node_to_expand);
-    if (num_current_node_to_expand_children > 0) {
-        *num_expanded_child_nodes = num_current_node_to_expand_children;
+    if (num_current_node_to_expand_children <= 0) {
+        GameState* node_to_expand_game_state = (GameState*) get_node_value_tree(node_to_expand).data;
+        GameCompletionState completion_state = DvGameState(node_to_expand_game_state->current_view);
 
-        Node* curr_children = get_children_tree(node_to_expand);
-        Node* children = malloc(sizeof(Node) * num_current_node_to_expand_children);
-        for (int i = 0; i < num_current_node_to_expand_children; ++i) {
-            children[i] = curr_children[i];
+        if (completion_state == GAME_NOT_OVER) {
+            int num_moves_returned = -1;
+            char** move_buffer = DvComputePossibleMovesForPlayer(node_to_expand_game_state->current_view, &num_moves_returned);
+            assert(num_moves_returned != -1);
+
+            for (int move_index = 0; move_index < num_moves_returned; ++move_index) {
+                DraculaView new_move_state = DvMakeCopy(node_to_expand_game_state->current_view);
+                DvAdvanceStateByMoves(new_move_state, move_buffer[move_index]);
+
+                PlaceId move_location_id = get_move_location_id(move_buffer[move_index]);
+
+                Item expanded_game_state_item = create_game_state_item(new_move_state, 0, 0, move_location_id, false);
+
+                Node expanded_child = create_new_node_tree(expanded_game_state_item);
+                add_new_child_tree(node_to_expand, expanded_child);
+
+                free(move_buffer[move_index]);
+            }
+
+            free(move_buffer);
         }
-
-        return children;
     }
-
-    GameState* node_to_expand_game_state = (GameState*) get_node_value_tree(node_to_expand).data;
-    GameCompletionState completion_state = DvGameState(node_to_expand_game_state->current_view);
-
-    if (completion_state != GAME_NOT_OVER) {
-        *num_expanded_child_nodes = 1;
-
-        Node* children = malloc(sizeof(Node));
-        children[0] = node_to_expand;
-
-        return children;
-    }
-
-    int num_moves_returned = -1;
-    char** move_buffer = DvComputePossibleMovesForPlayer(node_to_expand_game_state->current_view, &num_moves_returned);
-    assert(num_moves_returned != -1);
-
-    Node* new_nodes = malloc(sizeof(Node) * num_moves_returned);
-    for (int move_index = 0; move_index < num_moves_returned; ++move_index) {
-        DraculaView new_move_state = DvMakeCopy(node_to_expand_game_state->current_view);
-        DvAdvanceStateByMoves(new_move_state, move_buffer[move_index]);
-
-        PlaceId move_location_id = get_move_location_id(move_buffer[move_index]);
-
-        Node expanded_child = create_new_node_tree(create_game_state_item(new_move_state, 0, 0, move_location_id));
-        add_new_child_tree(node_to_expand, expanded_child);
-        new_nodes[move_index] = expanded_child;
-
-        free(move_buffer[move_index]);
-    }
-    free(move_buffer);
-
-    *num_expanded_child_nodes = num_moves_returned;
 
     unlock_node_tree(node_to_expand);
-    return new_nodes;
 }
 
-static GameCompletionState simulate_random_playout(Node node_to_explore, unsigned int* rand_generator_state) {
+static int simulate_random_playout(Node node_to_explore, unsigned int* rand_generator_state) {
+    read_lock_node_tree(node_to_explore);
     DraculaView current_game_view = DvMakeCopy(((GameState*) get_node_value_tree(node_to_explore).data)->current_view);
+    unlock_node_tree(node_to_explore);
     GameCompletionState game_completed_yet = DvGameState(current_game_view);
 
-    while (game_completed_yet == GAME_NOT_OVER) {
+    int playout_depth = 0;
+    while (game_completed_yet == GAME_NOT_OVER && playout_depth < MAX_PLAY_DEPTH) {
         int num_moves_returned = -1;
+        Player current_player = DvGetPlayer(current_game_view);
         char** move_buffer = DvComputePossibleMovesForPlayer(current_game_view, &num_moves_returned);
         assert(num_moves_returned != -1);
 
-        int random_move_index = rand_r(rand_generator_state) % num_moves_returned;
-        char* random_move = move_buffer[random_move_index];
+        // Weighted random move selection based on heuristic
+        float aggregate_heuristic_scores = 0.0f;
+        float* heuristic_scores_per_move = (float*) malloc(sizeof(float) * num_moves_returned);
+        for (int move = 0; move < num_moves_returned; ++move) {
+            DraculaView game_view_for_move = DvMakeCopy(current_game_view);
+            DvAdvanceStateByMoves(game_view_for_move, move_buffer[move]);
+
+            heuristic_scores_per_move[move] = tree_culling_heuristic(current_player, min_distance_from_hunter_view(game_view_for_move),
+                                                                     DvGetHealth(game_view_for_move, PLAYER_DRACULA),
+                                                                     DvGetScore(game_view_for_move));
+
+            DvFree(game_view_for_move);
+        }
+        float random_heuristic_score_index = (float) rand_r(rand_generator_state)/((float) RAND_MAX / aggregate_heuristic_scores);
+        char* random_move = move_buffer[0];
+        for (int move = 0; move < num_moves_returned; ++move) {
+            if (heuristic_scores_per_move[move] > random_heuristic_score_index) {
+                random_move = move_buffer[move];
+                break;
+            }
+        }
+
         DvAdvanceStateByMoves(current_game_view, random_move);
+        ++playout_depth;
 
         for (int i = 0; i < num_moves_returned; ++i) {
             free(move_buffer[i]);
         }
         free(move_buffer);
+        free(heuristic_scores_per_move);
 
         game_completed_yet = DvGameState(current_game_view);
     }
 
-    return game_completed_yet;
+    int current_game_view_score = DvGetScore(current_game_view);
+    DvFree(current_game_view);
+
+    return GAME_START_SCORE - current_game_view_score;
 }
 
 static Node select_child_to_playout(Node* children, int num_children, unsigned int* rand_generator_state) {
@@ -205,14 +304,14 @@ static Node select_child_to_playout(Node* children, int num_children, unsigned i
     return children[rand_child_index];
 }
 
-static void backpropogate_state(Node played_out_node, GameCompletionState completion_state) {
+static void backpropogate_state(Node played_out_node, int dracula_score) {
     Node curr_node = played_out_node;
 
     while (curr_node != NULL) {
         write_lock_node_tree(curr_node);
 
         GameState* old_curr_node_game_state = (GameState*) get_node_value_tree(curr_node).data;
-        Item new_game_state = create_game_state_item(old_curr_node_game_state->current_view, old_curr_node_game_state->wins + (completion_state == DRACULA_WINS), old_curr_node_game_state->visits + 1, old_curr_node_game_state->move);
+        Item new_game_state = create_game_state_item(old_curr_node_game_state->current_view, old_curr_node_game_state->aggregate_dracula_score + dracula_score, old_curr_node_game_state->num_games + 1, old_curr_node_game_state->move, false);
         free(old_curr_node_game_state);
 
         set_node_value_tree(curr_node, new_game_state);
@@ -232,7 +331,7 @@ static Node get_child_with_maximum_score(Node root) {
 
     for (int i = 0; i < num_children; ++i) {
         GameState *child_state = (GameState *) get_node_value_tree(children[i]).data;
-        float curr_child_score = ((float) child_state->wins / (float) child_state->visits);
+        float curr_child_score = ((float) child_state->aggregate_dracula_score / (float) child_state->num_games);
 
         if (max_score < curr_child_score) {
             if (max_score < curr_child_score) {
@@ -243,7 +342,7 @@ static Node get_child_with_maximum_score(Node root) {
     }
 
 #ifndef NDEBUG
-    printf("Win ratio of best move: %f\n", max_score);
+    printf("Avg dracula score for best move: %f\n", max_score);
 #endif
 
     assert(max_child != NULL);
@@ -276,13 +375,20 @@ void* run_simulations(void* mcts_tree) {
 
         Node promising_node = select_promising_node(mcts_tree);
 
-        int num_expanded_child_nodes = -1;
-        Node* expanded_child_nodes = expand_node(promising_node, &num_expanded_child_nodes);
-        assert(num_expanded_child_nodes != -1);
+        expand_node(promising_node);
+
+        read_lock_node_tree(promising_node);
+        Node* expanded_child_nodes = get_children_tree(promising_node);
+        int num_expanded_child_nodes = get_num_children_tree(promising_node);
+        unlock_node_tree(promising_node);
 
         clock_gettime(CLOCK_MONOTONIC_RAW, &curr_time);
         if (!can_continue_running(start_time, curr_time)) {
             break;
+        }
+
+        if (num_expanded_child_nodes <= 0) {
+            continue;
         }
 
         Node node_to_explore = select_child_to_playout(expanded_child_nodes, num_expanded_child_nodes, &rand_generator_state);
@@ -296,6 +402,43 @@ void* run_simulations(void* mcts_tree) {
     return NULL;
 }
 
+PlaceId get_best_starting_location(DraculaView dv, Tree mcts_tree) {
+    Node root_node = get_root_tree(mcts_tree);
+    unsigned int rand_generator_state = (long) time(NULL) ^ (long) getpid() ^ (long) pthread_self();
+
+    expand_node(root_node);
+    int num_child_nodes = get_num_children_tree(root_node);
+    Node* child_nodes = get_children_tree(root_node);
+
+    int best_place_index = rand_r(&rand_generator_state) % num_child_nodes;
+    float best_place_min_dist = -FLT_MAX;
+    PlaceId* possible_places = (PlaceId*) malloc(sizeof(PlaceId) * num_child_nodes);
+
+    for (int i = 0; i < num_child_nodes; ++i) {
+        GameState* child_state = (GameState*) get_node_value_tree(child_nodes[i]).data;
+        possible_places[i] = child_state->move;
+    }
+
+    for (int i = 0; i < num_child_nodes; ++i) {
+        PlaceId curr_place = possible_places[i];
+
+        if (!placeIsReal(curr_place) || placeIsSea(curr_place)) {
+            continue;
+        }
+
+        float curr_min_dist = min_distance_from_hunter(get_node_value_tree(child_nodes[i]).data);
+        if (curr_min_dist > best_place_min_dist) {
+            best_place_index = i;
+            best_place_min_dist = curr_min_dist;
+        }
+    }
+
+    PlaceId best_starting_loc = possible_places[best_place_index];
+    free(possible_places);
+
+    return best_starting_loc;
+}
+
 void decideDraculaMove(DraculaView dv) {
     Player current_player = DvGetPlayer(dv);
     if (current_player != PLAYER_DRACULA) {
@@ -304,32 +447,37 @@ void decideDraculaMove(DraculaView dv) {
     }
 
     PlaceId best_move;
+    Round current_round = DvGetRound(dv);
     Tree mcts_tree = create_new_tree();
-    set_root_tree(mcts_tree, create_new_node_tree(create_game_state_item(dv, 0, 0, NOWHERE)));
+    set_root_tree(mcts_tree, create_new_node_tree(create_game_state_item(dv, 0, 0, NOWHERE, true)));
 
-    // Create MCTS simulation threads
-    pthread_t thread_ids[NUMBER_OF_THREADS-1];
-    for (int i = 0; i < NUMBER_OF_THREADS-1; ++i) {
-        pthread_create(&thread_ids[i], NULL, run_simulations, (void*) mcts_tree);
-    }
+    if (current_round > 0) {
+        // Create MCTS simulation threads
+        pthread_t thread_ids[NUMBER_OF_THREADS-1];
+        for (int i = 0; i < NUMBER_OF_THREADS-1; ++i) {
+            pthread_create(&thread_ids[i], NULL, run_simulations, (void*) mcts_tree);
+        }
 
-    // Allow the main thread to also participate in the simulations as opposed to idling
-    run_simulations((void*) mcts_tree);
+        // Allow the main thread to also participate in the simulations as opposed to idling
+        run_simulations((void*) mcts_tree);
 
-    // Join the simulation threads to the main thread's execution on their completion
-    for (int i = 0; i < NUMBER_OF_THREADS-1; ++i) {
-        pthread_join(thread_ids[i], NULL);
-    }
+        // Join the simulation threads to the main thread's execution on their completion
+        for (int i = 0; i < NUMBER_OF_THREADS-1; ++i) {
+            pthread_join(thread_ids[i], NULL);
+        }
 
-    Node best_node = get_child_with_maximum_score(get_root_tree(mcts_tree));
-    GameState* best_node_state = (GameState*) get_node_value_tree(best_node).data;
-    best_move = best_node_state->move;
-
-    free(mcts_tree);
+        Node best_node = get_child_with_maximum_score(get_root_tree(mcts_tree));
+        GameState* best_node_state = (GameState*) get_node_value_tree(best_node).data;
+        best_move = best_node_state->move;
 
 #ifndef NDEBUG
-    printf("Num iter: %d\n", num_iter);
+        printf("Num iter: %d\n", num_iter);
 #endif
+    } else {
+        best_move = get_best_starting_location(dv, mcts_tree);
+    }
+
+    free_tree(mcts_tree);
 
 	registerBestPlay(placeIdToAbbrev(best_move), "Mwahaha, you cannot defeat Count Monte Carlo!");
 }

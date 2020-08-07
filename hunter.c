@@ -32,7 +32,21 @@ void decideHunterMove(HunterView hv)
 	Round curr_round = HvGetRound(hv);
 	Player curr_player = HvGetPlayer(hv); // players 0,1,2,3,4 (typedef enum)
 	PlaceId curr_loc = HvGetPlayerLocation(hv,curr_player);
+<<<<<<< HEAD
 	char *msg = "Your bloodsucking days end now.";
+=======
+	int health = HvGetHealth(hv,curr_player);
+	char *msg = "dummy message";
+	
+
+	// Get location occupied by other hunters
+	PlaceId occupied[3], enPt = 0;
+	for (int i = 0; i < NUM_PLAYERS - 1; i++) {
+		if (i == curr_player) continue;
+		occupied[enPt] = HvGetPlayerLocation(hv,i);
+		enPt++;
+	}
+>>>>>>> a5edd1581b13d1a056f8d345612b5ee51086fe74
 
 	if (curr_round < 1) { // Fixed moves for round 0; hunter locations are spread
 		switch (curr_player) 
@@ -90,9 +104,20 @@ void decideHunterMove(HunterView hv)
 	} else if (HvGetHealth(hv, curr_player) <= 3) { // Critical health threshold
 		registerBestPlay((char *)placeIdToAbbrev(curr_loc), msg);
 	}
+<<<<<<< HEAD
 
 	// bfs_cap observes if radius probabilities are certain enough for
 	// for hunters to search for Dracula or in need of recalculating
+=======
+	// Check current hunter's health point before decide moves
+	if(health <= 0){
+		PlaceId move = placeAbbrevToId("JM");
+		registerBestPlay((char *)placeIdToAbbrev(move), msg);
+		return;
+	}
+	// Preemptive stage: bfs_cap observes if radius probabilities
+	// are certain enough for hunters to search for Dracula.
+>>>>>>> a5edd1581b13d1a056f8d345612b5ee51086fe74
 	Round bfs_cap = curr_round - dracula_last_round - 1;
 	 
 	PlaceId move, *path_to_dracula;
