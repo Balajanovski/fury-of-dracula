@@ -24,7 +24,7 @@
 #define EXPLORATION_PARAMETER 1.41421356237f
 #define NUMBER_OF_THREADS 1
 #define DISTANCE_NORMALIZATION_BASE 16.0f
-#define MAX_PLAY_DEPTH 50
+#define MAX_PLAY_DEPTH 100
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
