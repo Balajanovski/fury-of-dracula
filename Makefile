@@ -21,6 +21,7 @@ LDFLAGS = -lz -pthread -lm
 BINS = testGameView testHunterView testDraculaView testMap dracula hunter testKTree
 
 OBJS = GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o Queue.o MoveSet.o kTree.o
+LIBS =
 
 all: $(BINS)
 
