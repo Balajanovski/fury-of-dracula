@@ -20,11 +20,11 @@
 #include "Queue.h"
 #include "MoveSet.h"
 
-#define NANO_SECOND_END_BUFFER 1.4e8
+#define NANO_SECOND_END_BUFFER 1.05e8
 #define EXPLORATION_PARAMETER 1.41421356237f
-#define NUMBER_OF_THREADS 1
+#define NUMBER_OF_THREADS 5
 #define DISTANCE_NORMALIZATION_BASE 16.0f
-#define MAX_PLAY_DEPTH 100
+#define MAX_PLAY_DEPTH 150
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
@@ -142,8 +142,8 @@ static float min_distance_from_hunter(GameState* state) {
 
 static inline double tree_culling_heuristic(Player parent_player, double min_dist_from_hunter, int dracula_health, int game_score) {
     double heuristic_score = ((min_dist_from_hunter) / DISTANCE_NORMALIZATION_BASE * 100.0) +
-            ((double) dracula_health / GAME_START_BLOOD_POINTS * 10.0) +
-            ((GAME_START_SCORE - (double) game_score) / GAME_START_SCORE * 1.0);
+                             ((double) dracula_health / GAME_START_BLOOD_POINTS * 10.0) +
+                             ((GAME_START_SCORE - (double) game_score) / GAME_START_SCORE * 1.0);
     if (parent_player != PLAYER_DRACULA) {
         heuristic_score = 1.0f / heuristic_score;
     }
@@ -479,5 +479,5 @@ void decideDraculaMove(DraculaView dv) {
 
     free_tree(mcts_tree);
 
-	registerBestPlay(placeIdToAbbrev(best_move), "Mwahaha, you cannot defeat Count Monte Carlo!");
+    registerBestPlay(placeIdToAbbrev(best_move), "Mwahaha, you cannot defeat Count Monte Carlo!");
 }
