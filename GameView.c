@@ -464,7 +464,6 @@ GameView GvNew(char *past_plays, Message messages[]) {
 
 void GvFree(GameView gv) {
     assert(gv != NULL);
-    assert(gv->map != NULL);
     assert(gv->dracula_trail != NULL);
 
     // Free player location histories
@@ -479,7 +478,10 @@ void GvFree(GameView gv) {
         free_location_dynamic_array(gv->player_move_histories[i]);
     }
 
-    free_trail(gv->dracula_trail);
+    if (gv->dracula_trail != NULL) {
+        free_trail(gv->dracula_trail);
+    }
+
     free_location_dynamic_array(gv->chronological_player_location_history);
 
     if (!gv->is_copy) {
@@ -697,4 +699,8 @@ GameCompletionState GvGameState(GameView gv) {
 
 const PlaceId* GvGetChronologicalLocationHistory(GameView gv, int* num_moves) {
     return get_raw_array_from_index_location_dynamic_array(gv->chronological_player_location_history, 0, num_moves);
+}
+
+bool GvIsCopy(GameView gv) {
+    return gv->is_copy;
 }

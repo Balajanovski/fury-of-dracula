@@ -35,8 +35,6 @@ typedef struct {
     DraculaView current_view;
     int aggregate_dracula_score; // Dracula score is defined as start score - current gamestate score
     int num_games;
-    bool min_dist_cache_filled;
-    float min_dist_from_hunter;
     PlaceId move;
 } GameState;
 
@@ -55,7 +53,6 @@ static Item create_game_state_item(DraculaView view, int aggregate_dracula_score
     new_item_state->aggregate_dracula_score = aggregate_dracula_score;
     new_item_state->num_games = num_games;
     new_item_state->move = move;
-    new_item_state->min_dist_cache_filled = false;
     new_item.custom_free = &custom_game_state_free;
 
     return new_item;
@@ -160,6 +157,11 @@ static void expand_node(Node node_to_expand) {
             }
 
             free(move_buffer);
+
+            // The copy view is no longer needed as the node is not a leaf which can be played out
+            if (num_moves_returned > 0 && DvIsCopy(node_to_expand_game_state->current_view)) {
+                DvFree(node_to_expand_game_state->current_view);
+            }
         }
     }
 
@@ -235,6 +237,7 @@ typedef union {
 } MungedFloat;
 
 static void recursively_serialize_tree(Node node, FILE* fp) {
+    read_lock_node_tree(node);
     uint32_t num_children = get_num_children_tree(node);
 
     // Write number of children
@@ -250,6 +253,7 @@ static void recursively_serialize_tree(Node node, FILE* fp) {
 
     // Recurse on children
     Node* children = get_children_tree(node);
+    unlock_node_tree(node);
     for (int i = 0; i < num_children; ++i) {
         recursively_serialize_tree(children[i], fp);
     }
@@ -293,7 +297,7 @@ void* run_simulations(void* mcts_tree) {
         }
 
         Node node_to_explore = select_child_to_playout(expanded_child_nodes, num_expanded_child_nodes, &rand_generator_state);
-        GameCompletionState playout_result = simulate_random_playout(node_to_explore, &rand_generator_state);
+        int playout_result = simulate_random_playout(node_to_explore, &rand_generator_state);
 
         backpropogate_state(node_to_explore, playout_result);
     }
@@ -301,11 +305,19 @@ void* run_simulations(void* mcts_tree) {
     return NULL;
 }
 
+typedef struct {
+    Tree tree;
+    FILE* serialized_tree_file;
+} NumIterArg;
+
 void* print_num_iter(void* data) {
+    NumIterArg* iter_arg = (NumIterArg*) data;
+
     while (!interrupted) {
         printf("Number of iterations ran: %d\n", num_iter);
-        sleep(10);
+        sleep(60);
     }
+    serialize_tree(iter_arg->tree, iter_arg->serialized_tree_file);
 
     return NULL;
 }
@@ -316,6 +328,12 @@ int main() {
 
     Tree mcts_tree = create_new_tree();
     set_root_tree(mcts_tree, create_new_node_tree(create_game_state_item(dv, 0, 0, NOWHERE, false)));
+    FILE* serialized_tree_file = fopen(SERIALIZED_FILE_NAME, "wb");
+    if (serialized_tree_file == NULL) {
+        fprintf(stderr, "Unable to open serialized tree file for writing. Aborting...\n");
+        exit(EXIT_FAILURE);
+    }
+    NumIterArg iter_arg = {.tree = mcts_tree, .serialized_tree_file = serialized_tree_file};
 
     // Create MCTS simulation threads
     pthread_t thread_ids[NUMBER_OF_THREADS-1];
@@ -328,7 +346,7 @@ int main() {
     pthread_attr_init(&attrs);
     pthread_attr_setdetachstate(&attrs, 1);
     pthread_t periodic_update;
-    pthread_create(&periodic_update, &attrs, print_num_iter, NULL);
+    pthread_create(&periodic_update, &attrs, print_num_iter, &iter_arg);
 
     // Allow the main thread to also participate in the simulations as opposed to idling
     run_simulations((void*) mcts_tree);
@@ -341,12 +359,6 @@ int main() {
 
     printf("Final number of iterations ran: %d\n", num_iter);
 
-    FILE* serialized_tree_file = fopen(SERIALIZED_FILE_NAME, "wb");
-    if (serialized_tree_file == NULL) {
-        fprintf(stderr, "Unable to open serialized tree file for writing. Aborting...\n");
-        exit(EXIT_FAILURE);
-    }
-    serialize_tree(mcts_tree, serialized_tree_file);
     fclose(serialized_tree_file);
 
     printf("Finished serializing...\n");

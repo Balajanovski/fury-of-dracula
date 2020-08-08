@@ -420,4 +420,8 @@ const PlaceId* DvGetChronologicalLocationHistory(DraculaView dv, int* num_moves)
     return GvGetChronologicalLocationHistory(dv->gv, num_moves);
 }
 
+bool DvIsCopy(DraculaView dv) {
+    return GvIsCopy(dv->gv);
+}
+
 ////////////////////////////////////////////////////////////////////////

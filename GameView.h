@@ -268,6 +268,7 @@ DraculaTrail GvGetDraculaTrail(GameView gv);
 GameView GvMakeCopy(GameView gv);
 void GvAdvanceStateByMoves(GameView gv, char* play_string);
 const PlaceId* GvGetChronologicalLocationHistory(GameView gv, int* num_moves);
+bool GvIsCopy(GameView gv);
 
 GameCompletionState GvGameState(GameView gv);
 

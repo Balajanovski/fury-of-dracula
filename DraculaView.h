@@ -195,4 +195,6 @@ PlaceId *DvWhereCanTheyGoByTypeFromLocationAndRound(DraculaView dv, Player playe
                                                     int *numReturnedLocs);
 const PlaceId* DvGetChronologicalLocationHistory(DraculaView dv, int* num_moves);
 
+bool DvIsCopy(DraculaView dv);
+
 #endif // !defined(FOD__DRACULA_VIEW_H_)
