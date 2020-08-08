@@ -184,7 +184,7 @@ void decideHunterMove(HunterView hv)
 
 		int isOccup = 0;
 		for (int j = 0; j < 3; j++) {
-			if (occupied[i] == i) isOccup = 1;
+			if (occupied[j] == i) isOccup = 1;
 		}
 
 		if (isOccup == 1) continue;
@@ -196,20 +196,14 @@ void decideHunterMove(HunterView hv)
 		}
 	}
 
-	// Move hunters closer to the higher probability locations in the shortest
-	// possible way if they weren't any 'probable move'.
+	// Move hunters closer to the higher probability locations in the
+	// shortest possible way if they weren't any 'probable move'.
+	// Locations not their current one or occupied by other hunters are allowed.
 	if (dist_prob[max] < 0) { 
 		int pathLen = -1, shortestLen = 999;
 		for (int i = 0; i < NUM_REAL_PLACES; i++) {
 			if (dist_prob[i] == highestProb && i != curr_loc) {
-				
-				int isOccup = 0;
-				for (int j = 0; j < 3; j++) {
-					if (occupied[i] == i) isOccup = 1;
-				}
 
-				if (isOccup == 1) continue;
-				
 				PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathLen);
 				if (pathLen < shortestLen && pathLen >= 2) {
 					shortestLen = pathLen;
