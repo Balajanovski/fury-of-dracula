@@ -480,6 +480,7 @@ void GvFree(GameView gv) {
     }
 
     free_trail(gv->dracula_trail);
+    free_location_dynamic_array(gv->chronological_player_location_history);
 
     if (!gv->is_copy) {
         MapFree(gv->map);
@@ -679,7 +680,7 @@ GameView GvMakeCopy(GameView gv) {
     new_gv->score = gv->score;
     new_gv->vampire_location = gv->vampire_location;
     new_gv->is_copy = true;
-    new_gv->chronological_player_location_history = gv->chronological_player_location_history;
+    new_gv->chronological_player_location_history = make_copy_location_dynamic_array(gv->chronological_player_location_history);
 
     return new_gv;
 }

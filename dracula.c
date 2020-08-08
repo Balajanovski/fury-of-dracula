@@ -201,7 +201,7 @@ void decideDraculaMove(DraculaView dv) {
     int num_locations;
     const PlaceId* chronological_loc_hist = DvGetChronologicalLocationHistory(dv, &num_locations);
 
-    Node current_state_node = get_current_state_node(current_state_node, 0, chronological_loc_hist, num_locations);
+    Node current_state_node = get_current_state_node(get_root_tree(mcts_tree), 0, chronological_loc_hist, num_locations);
     PlaceId best_move;
     if (current_state_node != NULL) {
         Node best_next_move_node = get_child_with_maximum_score(current_state_node);

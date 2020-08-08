@@ -315,7 +315,7 @@ int main() {
     DraculaView dv = DvNew("", messages);
 
     Tree mcts_tree = create_new_tree();
-    set_root_tree(mcts_tree, create_new_node_tree(create_game_state_item(dv, 0, 0, NOWHERE, true)));
+    set_root_tree(mcts_tree, create_new_node_tree(create_game_state_item(dv, 0, 0, NOWHERE, false)));
 
     // Create MCTS simulation threads
     pthread_t thread_ids[NUMBER_OF_THREADS-1];
@@ -324,8 +324,11 @@ int main() {
     }
 
     // Create periodic update thread
+    pthread_attr_t attrs;
+    pthread_attr_init(&attrs);
+    pthread_attr_setdetachstate(&attrs, 1);
     pthread_t periodic_update;
-    pthread_create(&periodic_update, NULL, print_num_iter, NULL);
+    pthread_create(&periodic_update, &attrs, print_num_iter, NULL);
 
     // Allow the main thread to also participate in the simulations as opposed to idling
     run_simulations((void*) mcts_tree);
