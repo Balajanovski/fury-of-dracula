@@ -32,13 +32,8 @@ void decideHunterMove(HunterView hv)
 	Round curr_round = HvGetRound(hv);
 	Player curr_player = HvGetPlayer(hv); // players 0,1,2,3,4 (typedef enum)
 	PlaceId curr_loc = HvGetPlayerLocation(hv,curr_player);
-<<<<<<< HEAD
 	char *msg = "Your bloodsucking days end now.";
-=======
-	int health = HvGetHealth(hv,curr_player);
-	char *msg = "dummy message";
 	
-
 	// Get location occupied by other hunters
 	PlaceId occupied[3], enPt = 0;
 	for (int i = 0; i < NUM_PLAYERS - 1; i++) {
@@ -46,7 +41,6 @@ void decideHunterMove(HunterView hv)
 		occupied[enPt] = HvGetPlayerLocation(hv,i);
 		enPt++;
 	}
->>>>>>> a5edd1581b13d1a056f8d345612b5ee51086fe74
 
 	if (curr_round < 1) { // Fixed moves for round 0; hunter locations are spread
 		switch (curr_player) 
@@ -94,30 +88,17 @@ void decideHunterMove(HunterView hv)
 		if (valid == 0) {
 		    move = validMoves[curr_round % numValid];
 		}
-		
+	
 		registerBestPlay((char *)placeIdToAbbrev(move), msg);
 		return;
-	} else if (drac_loc == NOWHERE) { 
+	} else if (drac_loc == NOWHERE || HvGetHealth(hv, curr_player) <= 3) { 
 	    PlaceId move = curr_loc;
 	    registerBestPlay((char *)placeIdToAbbrev(move), msg);
 		return;
-	} else if (HvGetHealth(hv, curr_player) <= 3) { // Critical health threshold
-		registerBestPlay((char *)placeIdToAbbrev(curr_loc), msg);
 	}
-<<<<<<< HEAD
 
 	// bfs_cap observes if radius probabilities are certain enough for
 	// for hunters to search for Dracula or in need of recalculating
-=======
-	// Check current hunter's health point before decide moves
-	if(health <= 0){
-		PlaceId move = placeAbbrevToId("JM");
-		registerBestPlay((char *)placeIdToAbbrev(move), msg);
-		return;
-	}
-	// Preemptive stage: bfs_cap observes if radius probabilities
-	// are certain enough for hunters to search for Dracula.
->>>>>>> a5edd1581b13d1a056f8d345612b5ee51086fe74
 	Round bfs_cap = curr_round - dracula_last_round - 1;
 	 
 	PlaceId move, *path_to_dracula;
@@ -148,7 +129,7 @@ void decideHunterMove(HunterView hv)
 		return;
 	}
 	
-	// Calculating stage: dist_prob[] is used to determine radius of movement according
+	// dist_prob[] is used to determine radius of movement according
 	// to bfs_cap (max dist. dracula could travel due to round changes)
 	float dist_prob[NUM_REAL_PLACES];
 	for (int i = 0; i < NUM_REAL_PLACES; i++) dist_prob[i] = -1;
@@ -201,7 +182,13 @@ void decideHunterMove(HunterView hv)
 	PlaceId *canGo = HvWhereCanIGo(hv, &numPlaces), max = canGo[0];
 	for (int i = 1; i < numPlaces; i++) {		
 
-		if (dist_prob[canGo[i]] == curr_loc) continue;
+		int isOccup = 0;
+		for (int j = 0; j < 3; j++) {
+			if (occupied[i] == i) isOccup = 1;
+		}
+
+		if (isOccup == 1) continue;
+		if (canGo[i] == curr_loc) continue;
 		
 		if (mostProb < dist_prob[canGo[i]]) {
 			mostProb = dist_prob[canGo[i]];
@@ -215,13 +202,20 @@ void decideHunterMove(HunterView hv)
 		int pathLen = -1, shortestLen = 999;
 		for (int i = 0; i < NUM_REAL_PLACES; i++) {
 			if (dist_prob[i] == highestProb && i != curr_loc) {
-				if (pathLen < shortestLen) {
-					PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathLen);
+				
+				int isOccup = 0;
+				for (int j = 0; j < 3; j++) {
+					if (occupied[i] == i) isOccup = 1;
+				}
+
+				if (isOccup == 1) continue;
+				
+				PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathLen);
+				if (pathLen < shortestLen && pathLen >= 2) {
 					shortestLen = pathLen;
 					max = shortest[0];
 				}
 			}
-		
 		}	
 	}
 	
@@ -229,7 +223,7 @@ void decideHunterMove(HunterView hv)
 	PlaceId *validMoves = HvWhereCanIGo(hv, &numValid);
 	for (int i = 0; i < numValid; i++) {
 		if (validMoves[i] == max) {
-		     valid = 1;
+		    valid = 1;
 		}  
 	}
 		
