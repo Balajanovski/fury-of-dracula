@@ -204,7 +204,7 @@ void decideHunterMove(HunterView hv)
 		for (int i = 0; i < NUM_REAL_PLACES; i++) {
 			if (dist_prob[i] == highestProb && i != curr_loc) {
 				PlaceId *shortest = HvGetShortestPathTo(hv,curr_player,(PlaceId)i,&pathLen);
-				if (pathLen < shortestLen && pathLen >= 2) {
+				if (pathLen < shortestLen && pathLen >= 3) {
 					shortestLen = pathLen;
 					max = shortest[0];
 				}
