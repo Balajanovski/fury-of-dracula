@@ -62,13 +62,13 @@ void decideHunterMove(HunterView hv)
 		switch (curr_player) 
 		{
 		    case PLAYER_DR_SEWARD : 
-				loc = EDINBURGH; break;
+				loc = LONDON; break;
 		    case PLAYER_LORD_GODALMING : 
 				loc = CASTLE_DRACULA; break;
 		    case PLAYER_MINA_HARKER :
 		        loc = LISBON; break;
 		    case PLAYER_VAN_HELSING : 
-		        loc = ATHENS; break;
+		        loc = VALONA; break;
 		    default :
 		        printf("Invalid player");
 		}
