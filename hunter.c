@@ -123,7 +123,7 @@ void decideHunterMove(HunterView hv)
 		
 		registerBestPlay((char *)placeIdToAbbrev(move), msg);
 		return;		
-	} else if (bfs_cap == 10) { // Low certainty: Probability of his whereabouts is spreading
+	} else if (bfs_cap == 9) { // Low certainty: Probability of his whereabouts is spreading
 		move = curr_loc;
 		registerBestPlay((char *)placeIdToAbbrev(move), msg);
 		return;
