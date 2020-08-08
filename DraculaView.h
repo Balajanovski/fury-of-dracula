@@ -193,5 +193,6 @@ PlaceId *DvWhereCanTheyGoByTypeFromLocationAndRound(DraculaView dv, Player playe
                                                     Round round, PlaceId player_loc,
                                                     bool road, bool rail, bool boat,
                                                     int *numReturnedLocs);
+const PlaceId* DvGetChronologicalLocationHistory(DraculaView dv, int* num_moves);
 
 #endif // !defined(FOD__DRACULA_VIEW_H_)

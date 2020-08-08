@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <stdint.h>
 
 #include "kTree.h"
 
@@ -18,8 +19,8 @@ struct baseNode {
     Item value;
     struct baseNode **children;
     struct baseNode *parent;
-    int size;
-    int capacity;
+    uint32_t size;
+    uint32_t capacity;
 
     pthread_rwlock_t read_write_lock_node;
 };
@@ -138,7 +139,7 @@ inline Node* get_children_tree(Node node) {
     return children;
 }
 
-inline int get_num_children_tree(Node node) {
+inline uint32_t get_num_children_tree(Node node) {
     assert(node != NULL);
 
     int num_children = node->size;
