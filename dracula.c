@@ -20,9 +20,9 @@
 #include "Queue.h"
 
 #define NANO_SECOND_END_BUFFER 1.05e8
-#define EXPLORATION_PARAMETER 0.75f
-#define NUMBER_OF_THREADS 10
-#define MAX_PLAY_DEPTH 10000
+#define EXPLORATION_PARAMETER 1.45f
+#define NUMBER_OF_THREADS 5
+#define MAX_PLAY_DEPTH 100000
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
