@@ -336,8 +336,18 @@ static char** possible_moves_for_dracula(DraculaView dv, int* num_moves_returned
 static char** possible_moves_for_hunter(DraculaView dv, Player player, int* num_moves_returned) {
     assert(player != PLAYER_DRACULA);
 
+    Round round = DvGetRound(dv);
     int num_valid_moves = -1;
-    PlaceId* possible_moves = DvWhereCanTheyGo(dv, player, &num_valid_moves);
+    PlaceId* possible_moves = NULL;
+    if (round == 0) {
+        possible_moves = (PlaceId*) malloc(sizeof(PlaceId) * NUM_REAL_PLACES);
+        for (PlaceId p = 0; p < NUM_REAL_PLACES; ++p) {
+            possible_moves[p] = p;
+        }
+        num_valid_moves = NUM_REAL_PLACES;
+    } else {
+        possible_moves = DvWhereCanTheyGo(dv, player, &num_valid_moves);
+    }
     assert(num_valid_moves != -1);
 
     int num_traps = -1;
@@ -404,6 +414,14 @@ inline GameCompletionState DvGameState(DraculaView dv) {
 
 inline Player DvGetPlayer(DraculaView dv) {
     return GvGetPlayer(dv->gv);
+}
+
+const PlaceId* DvGetChronologicalLocationHistory(DraculaView dv, int* num_moves) {
+    return GvGetChronologicalLocationHistory(dv->gv, num_moves);
+}
+
+bool DvIsCopy(DraculaView dv) {
+    return GvIsCopy(dv->gv);
 }
 
 ////////////////////////////////////////////////////////////////////////

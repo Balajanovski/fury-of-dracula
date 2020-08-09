@@ -12,19 +12,20 @@
 CC = gcc
 
 # For debugging, set the c flags to
-# CFLAGS = -Wall -g -pthread
+CFLAGS = -Wall -g -pthread -O3
 
 # For our submissions, set the c flags to
-CFLAGS = -Wall -pthread -O3 -DNDEBUG
+# CFLAGS = -Wall -pthread -O3 -DNDEBUG
 
 LDFLAGS = -lz -pthread -lm
-BINS = testGameView testHunterView testDraculaView testMap dracula hunter testKTree
+BINS = testGameView testHunterView testDraculaView testMap dracula hunter testKTree precompute_mcts_tree
 
 OBJS = GameView.o Map.o Places.o LocationDynamicArray.o DraculaTrail.o Queue.o MoveSet.o kTree.o
-LIBS =
+LIBS = -lm
 
 all: $(BINS)
 
+precompute_mcts_tree: precompute_mcts_tree.o DraculaView.o $(OBJS) $(LIBS)
 dracula: playerDracula.o dracula.o DraculaView.o  $(OBJS) $(LIBS)
 hunter: playerHunter.o hunter.o HunterView.o Probability.o $(OBJS) $(LIBS)
 
@@ -33,6 +34,7 @@ playerDracula.o: player.c dracula.h Game.h DraculaView.h GameView.h Places.h
 playerHunter.o: player.c hunter.h Game.h HunterView.h GameView.h Places.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
+precompute_mcts_tree.o: DraculaView.o $(OBJS)
 dracula.o: dracula.c dracula.h DraculaView.o $(OBJS)
 hunter.o: hunter.c hunter.h HunterView.o $(OBJS)
 

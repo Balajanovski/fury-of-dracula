@@ -4,6 +4,9 @@
 #ifndef KTREE_H
 #define KTREE_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 typedef struct Item {
     void* data;
     void (*custom_free)(void *);
@@ -28,7 +31,7 @@ void set_root_tree(Tree t, Node n);
 Node get_root_tree(Tree tree);
 
 Node* get_children_tree(Node node);
-int get_num_children_tree(Node node);
+uint32_t get_num_children_tree(Node node);
 
 Node get_parent_tree(Node node);
 

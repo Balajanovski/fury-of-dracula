@@ -12,17 +12,18 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <limits.h>
+#include <signal.h>
 
 #include "dracula.h"
 #include "DraculaView.h"
 #include "Game.h"
 #include "kTree.h"
 #include "Queue.h"
+#include "MoveSet.h"
 
-#define NANO_SECOND_END_BUFFER 1.05e8
-#define EXPLORATION_PARAMETER 1.45f
-#define NUMBER_OF_THREADS 5
-#define MAX_PLAY_DEPTH 100000
+#define EXPLORATION_PARAMETER 1.41421356237f
+#define NUMBER_OF_THREADS 1
+#define SERIALIZED_FILE_NAME "serialized_tree"
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
@@ -34,8 +35,6 @@ typedef struct {
     DraculaView current_view;
     int aggregate_dracula_score; // Dracula score is defined as start score - current gamestate score
     int num_games;
-    bool min_dist_cache_filled;
-    float min_dist_from_hunter;
     PlaceId move;
 } GameState;
 
@@ -54,7 +53,6 @@ static Item create_game_state_item(DraculaView view, int aggregate_dracula_score
     new_item_state->aggregate_dracula_score = aggregate_dracula_score;
     new_item_state->num_games = num_games;
     new_item_state->move = move;
-    new_item_state->min_dist_cache_filled = false;
     new_item.custom_free = &custom_game_state_free;
 
     return new_item;
@@ -68,7 +66,7 @@ static float compute_uct(int aggregate_dracula_score, int num_games, int total_p
         return FLT_MAX;
     }
 
-    return ((float) aggregate_dracula_score / (float) num_games) + EXPLORATION_PARAMETER * sqrtf(2.f * logf((float) total_parent_node_simulations) / (float) num_games);
+    return (float) aggregate_dracula_score / (float) num_games + EXPLORATION_PARAMETER * sqrtf(2.f * logf((float) total_parent_node_simulations) / (float) num_games);
 }
 
 //////////////////////////////////
@@ -129,7 +127,7 @@ static PlaceId get_move_location_id(char* full_move_string) {
     return move_location_id;
 }
 
-static void expand_node(Node node_to_expand, unsigned int* rand_generator_state) {
+static void expand_node(Node node_to_expand) {
     write_lock_node_tree(node_to_expand);
 
     // Handle case for if two threads come to expanding the same node at the same time
@@ -144,21 +142,26 @@ static void expand_node(Node node_to_expand, unsigned int* rand_generator_state)
             char** move_buffer = DvComputePossibleMovesForPlayer(node_to_expand_game_state->current_view, &num_moves_returned);
             assert(num_moves_returned != -1);
 
-            int rand_move_index = rand_r(rand_generator_state) % num_moves_returned;
-            DraculaView new_move_state = DvMakeCopy(node_to_expand_game_state->current_view);
-            DvAdvanceStateByMoves(new_move_state, move_buffer[rand_move_index]);
-
-            PlaceId move_location_id = get_move_location_id(move_buffer[rand_move_index]);
-
-            Item expanded_game_state_item = create_game_state_item(new_move_state, 0, 0, move_location_id, false);
-
-            Node expanded_child = create_new_node_tree(expanded_game_state_item);
-            add_new_child_tree(node_to_expand, expanded_child);
-
             for (int move_index = 0; move_index < num_moves_returned; ++move_index) {
+                DraculaView new_move_state = DvMakeCopy(node_to_expand_game_state->current_view);
+                DvAdvanceStateByMoves(new_move_state, move_buffer[move_index]);
+
+                PlaceId move_location_id = get_move_location_id(move_buffer[move_index]);
+
+                Item expanded_game_state_item = create_game_state_item(new_move_state, 0, 0, move_location_id, false);
+
+                Node expanded_child = create_new_node_tree(expanded_game_state_item);
+                add_new_child_tree(node_to_expand, expanded_child);
+
                 free(move_buffer[move_index]);
             }
+
             free(move_buffer);
+
+            // The copy view is no longer needed as the node is not a leaf which can be played out
+            if (num_moves_returned > 0 && DvIsCopy(node_to_expand_game_state->current_view)) {
+                DvFree(node_to_expand_game_state->current_view);
+            }
         }
     }
 
@@ -171,16 +174,14 @@ static int simulate_random_playout(Node node_to_explore, unsigned int* rand_gene
     unlock_node_tree(node_to_explore);
     GameCompletionState game_completed_yet = DvGameState(current_game_view);
 
-    int playout_depth = 0;
-    while (game_completed_yet == GAME_NOT_OVER && playout_depth < MAX_PLAY_DEPTH) {
+    while (game_completed_yet == GAME_NOT_OVER) {
         int num_moves_returned = -1;
         char** move_buffer = DvComputePossibleMovesForPlayer(current_game_view, &num_moves_returned);
         assert(num_moves_returned != -1);
 
-        char* random_move = move_buffer[rand_r(rand_generator_state) % num_moves_returned];
-
+        int random_move_index = rand_r(rand_generator_state) % num_moves_returned;
+        char* random_move = move_buffer[random_move_index];
         DvAdvanceStateByMoves(current_game_view, random_move);
-        ++playout_depth;
 
         for (int i = 0; i < num_moves_returned; ++i) {
             free(move_buffer[i]);
@@ -220,191 +221,149 @@ static void backpropogate_state(Node played_out_node, int dracula_score) {
     }
 }
 
-static Node get_child_with_maximum_score(Node root) {
-    float max_score = -FLT_MAX;
-    Node max_child = NULL;
+////////////////
+// Serialization
 
-    int num_children = get_num_children_tree(root);
-    Node* children = get_children_tree(root);
+static inline void write_32_bits_to_file(uint32_t bit_set, FILE* fp) {
+    fputc(bit_set >> 24 & 0xFF, fp);
+    fputc(bit_set >> 16 & 0xFF, fp);
+    fputc(bit_set >> 8 & 0xFF, fp);
+    fputc(bit_set & 0xFF, fp);
+}
 
+typedef union {
+    float f;
+    uint32_t bits;
+} MungedFloat;
+
+static void recursively_serialize_tree(Node node, FILE* fp) {
+    read_lock_node_tree(node);
+    uint32_t num_children = get_num_children_tree(node);
+
+    // Write number of children
+    write_32_bits_to_file(num_children, fp);
+
+    // Write win rate of current node
+    GameState* curr_node_state = ((GameState*)get_node_value_tree(node).data);
+    MungedFloat win_rate = {.f = (float) curr_node_state->aggregate_dracula_score / (float) curr_node_state->num_games};
+    write_32_bits_to_file(win_rate.bits, fp);
+
+    // Write move of current node
+    write_32_bits_to_file(curr_node_state->move, fp);
+
+    // Recurse on children
+    Node* children = get_children_tree(node);
+    unlock_node_tree(node);
     for (int i = 0; i < num_children; ++i) {
-        GameState *child_state = (GameState *) get_node_value_tree(children[i]).data;
-        float curr_child_score = ((float) child_state->aggregate_dracula_score / (float) child_state->num_games);
-
-        if (max_score < curr_child_score) {
-            if (max_score < curr_child_score) {
-                max_score = curr_child_score;
-                max_child = children[i];
-            }
-        }
-    }
-
-#ifndef NDEBUG
-    printf("Avg dracula score for best move: %f\n", max_score);
-#endif
-
-    assert(max_child != NULL);
-    return max_child;
-}
-
-///////////////
-// Tree merging
-
-Node merge_recursively(Node lhs_n, Node rhs_n) {
-    if (lhs_n == NULL) {
-        return rhs_n;
-    } else if (rhs_n == NULL) {
-        return lhs_n;
-    } else {
-        GameState* lhs_data = (GameState*) get_node_value_tree(lhs_n).data;
-        GameState* rhs_data = (GameState*) get_node_value_tree(rhs_n).data;
-
-        Node* lhs_children = get_children_tree(lhs_n);
-        Node* rhs_children = get_children_tree(rhs_n);
-        int num_lhs_children = get_num_children_tree(lhs_n);
-        int num_rhs_children = get_num_children_tree(rhs_n);
-
-        Item new_node_data = create_game_state_item(
-                lhs_data->current_view,
-                lhs_data->aggregate_dracula_score + rhs_data->aggregate_dracula_score,
-                lhs_data->num_games + rhs_data->num_games,
-                lhs_data->move,
-                true);
-        Node new_node = create_new_node_tree(new_node_data);
-
-        int lhs_i = 0;
-        int rhs_i = 0;
-        while (lhs_i < num_lhs_children && rhs_i < num_rhs_children) {
-            GameState* lhs_child_data = (GameState*) get_node_value_tree(lhs_children[lhs_i]).data;
-            GameState* rhs_child_data = (GameState*) get_node_value_tree(rhs_children[rhs_i]).data;
-
-            if (lhs_child_data->move == rhs_child_data->move) {
-                add_new_child_tree(new_node, merge_recursively(lhs_children[lhs_i], rhs_children[rhs_i]));
-                ++lhs_i; ++rhs_i;
-            } else if (lhs_child_data->move < rhs_child_data->move) {
-                add_new_child_tree(new_node, merge_recursively(lhs_children[lhs_i], NULL));
-                ++lhs_i;
-            } else {
-                add_new_child_tree(new_node, merge_recursively(NULL, rhs_children[rhs_i]));
-                ++rhs_i;
-            }
-        }
-
-        while (lhs_i < num_lhs_children) {
-            add_new_child_tree(new_node, merge_recursively(lhs_children[lhs_i], NULL));
-            ++lhs_i;
-        }
-
-        while (rhs_i < num_rhs_children) {
-            add_new_child_tree(new_node, merge_recursively(NULL, rhs_children[rhs_i]));
-            ++rhs_i;
-        }
-
-        free_tree_node(lhs_n);
-        free_tree_node(rhs_n);
-
-        return new_node;
+        recursively_serialize_tree(children[i], fp);
     }
 }
 
-Tree merge_trees(Tree lhs, Tree rhs) {
-    Node root = merge_recursively(get_root_tree(lhs), get_root_tree(rhs));
-    Tree new_tree = create_new_tree();
-    set_root_tree(new_tree, root);
-
-    free(lhs);
-    free(rhs);
-
-    return new_tree;
+static void serialize_tree(Tree mcts_tree, FILE* fp) {
+    Node root = get_root_tree(mcts_tree);
+    recursively_serialize_tree(root, fp);
 }
 
 ////////////
 // Actual AI
-
-#ifndef NDEBUG
 int num_iter = 0;
-#endif
 
-static inline bool can_continue_running(struct timespec start_time, struct timespec curr_time) {
-    return (curr_time.tv_sec * 1e9 + curr_time.tv_nsec) - (start_time.tv_sec * 1e9 + start_time.tv_nsec) < (TURN_LIMIT_MSECS * 1e6) - NANO_SECOND_END_BUFFER;
+bool interrupted = false;
+void signal_interrupt_handler(int signum) {
+    printf("Interrupt signal detected. Serializing tree then closing...\n");
+    interrupted = true;
 }
 
-void* run_simulations(void* dv) {
-    Tree mcts_tree = create_new_tree();
-    set_root_tree(mcts_tree, create_new_node_tree(create_game_state_item(dv, 0, 0, NOWHERE, true)));
+void* run_simulations(void* mcts_tree) {
+    mcts_tree = (Tree) mcts_tree;
 
     unsigned int rand_generator_state = (long) time(NULL) ^ (long) getpid() ^ (long) pthread_self();
+    struct sigaction action = {.sa_handler = signal_interrupt_handler};
+    sigaction(SIGINT, &action, NULL);
 
-    struct timespec start_time, curr_time;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);
-    clock_gettime(CLOCK_MONOTONIC_RAW, &curr_time);
-    while (can_continue_running(start_time, curr_time)) {
-#ifndef NDEBUG
+    while (!interrupted) {
         __atomic_fetch_add(&num_iter, 1, __ATOMIC_SEQ_CST);
-#endif
 
         Node promising_node = select_promising_node(mcts_tree);
 
-        expand_node(promising_node, &rand_generator_state);
+        expand_node(promising_node);
 
         read_lock_node_tree(promising_node);
         Node* expanded_child_nodes = get_children_tree(promising_node);
         int num_expanded_child_nodes = get_num_children_tree(promising_node);
         unlock_node_tree(promising_node);
-
-        clock_gettime(CLOCK_MONOTONIC_RAW, &curr_time);
-        if (!can_continue_running(start_time, curr_time)) {
-            break;
-        }
-
         if (num_expanded_child_nodes <= 0) {
             continue;
         }
 
         Node node_to_explore = select_child_to_playout(expanded_child_nodes, num_expanded_child_nodes, &rand_generator_state);
-        GameCompletionState playout_result = simulate_random_playout(node_to_explore, &rand_generator_state);
+        int playout_result = simulate_random_playout(node_to_explore, &rand_generator_state);
 
         backpropogate_state(node_to_explore, playout_result);
-
-        clock_gettime(CLOCK_MONOTONIC_RAW, &curr_time);
     }
 
-    pthread_exit(mcts_tree);
+    return NULL;
 }
 
-void decideDraculaMove(DraculaView dv) {
-    Player current_player = DvGetPlayer(dv);
-    if (current_player != PLAYER_DRACULA) {
-        fprintf(stderr, "Invalid past plays string provided to initial dracula view, where the person to make a move is not dracula. Aborting...\n");
+typedef struct {
+    Tree tree;
+    FILE* serialized_tree_file;
+} NumIterArg;
+
+void* print_num_iter(void* data) {
+    NumIterArg* iter_arg = (NumIterArg*) data;
+
+    while (!interrupted) {
+        printf("Number of iterations ran: %d\n", num_iter);
+        sleep(60);
+    }
+    serialize_tree(iter_arg->tree, iter_arg->serialized_tree_file);
+
+    return NULL;
+}
+
+int main() {
+    Message messages[] = {};
+    DraculaView dv = DvNew("", messages);
+
+    Tree mcts_tree = create_new_tree();
+    set_root_tree(mcts_tree, create_new_node_tree(create_game_state_item(dv, 0, 0, NOWHERE, false)));
+    FILE* serialized_tree_file = fopen(SERIALIZED_FILE_NAME, "wb");
+    if (serialized_tree_file == NULL) {
+        fprintf(stderr, "Unable to open serialized tree file for writing. Aborting...\n");
         exit(EXIT_FAILURE);
     }
-
+    NumIterArg iter_arg = {.tree = mcts_tree, .serialized_tree_file = serialized_tree_file};
 
     // Create MCTS simulation threads
-    Tree trees[NUMBER_OF_THREADS];
-    pthread_t thread_ids[NUMBER_OF_THREADS];
-    for (int i = 0; i < NUMBER_OF_THREADS; ++i) {
-        pthread_create(&thread_ids[i], NULL, run_simulations, (void*) dv);
+    pthread_t thread_ids[NUMBER_OF_THREADS-1];
+    for (int i = 0; i < NUMBER_OF_THREADS-1; ++i) {
+        pthread_create(&thread_ids[i], NULL, run_simulations, (void*) mcts_tree);
     }
+
+    // Create periodic update thread
+    pthread_attr_t attrs;
+    pthread_attr_init(&attrs);
+    pthread_attr_setdetachstate(&attrs, 1);
+    pthread_t periodic_update;
+    pthread_create(&periodic_update, &attrs, print_num_iter, &iter_arg);
+
+    // Allow the main thread to also participate in the simulations as opposed to idling
+    run_simulations((void*) mcts_tree);
 
     // Join the simulation threads to the main thread's execution on their completion
-    for (int i = 0; i < NUMBER_OF_THREADS; ++i) {
-        pthread_join(thread_ids[i], (void**) &trees[i]);
+    for (int i = 0; i < NUMBER_OF_THREADS-1; ++i) {
+        pthread_join(thread_ids[i], NULL);
     }
+    pthread_cancel(periodic_update);
 
-    for (int i = 1; i < NUMBER_OF_THREADS; ++i) {
-        trees[0] = merge_trees(trees[0], trees[i]);
-    }
+    printf("Final number of iterations ran: %d\n", num_iter);
 
-    Node best_node = get_child_with_maximum_score(get_root_tree(trees[0]));
-    GameState* best_node_state = (GameState*) get_node_value_tree(best_node).data;
-    PlaceId best_move = best_node_state->move;
+    fclose(serialized_tree_file);
 
-#ifndef NDEBUG
-    printf("Num iter: %d\n", num_iter);
-#endif
+    printf("Finished serializing...\n");
 
-    free_tree(trees[0]);
+    free_tree(mcts_tree);
 
-    registerBestPlay(placeIdToAbbrev(best_move), "Mwahaha, you cannot defeat Count Monte Carlo!");
+    return EXIT_SUCCESS;
 }

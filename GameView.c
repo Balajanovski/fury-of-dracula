@@ -35,6 +35,7 @@ struct gameView {
 	DraculaTrail dracula_trail;
 	LocationDynamicArray player_location_histories[NUM_PLAYERS];
 	LocationDynamicArray player_move_histories[NUM_PLAYERS];
+	LocationDynamicArray chronological_player_location_history;
 
     PlaceId vampire_location;
 };
@@ -180,6 +181,7 @@ static PlaceId apply_hunter_encounters(GameView gv, Player curr_player, PlaceId 
     if (gv->player_healths[curr_player] <= 0) {
         gv->player_healths[curr_player] = MAX(gv->player_healths[curr_player], 0);
         gv->score -= SCORE_LOSS_HUNTER_HOSPITAL;
+        gv->score = MAX(gv->score, 0);
         gv->player_death_states[curr_player] = true;
 
         return ST_JOSEPH_AND_ST_MARY;
@@ -355,6 +357,7 @@ static void simulate_past_plays(GameView gv, char* past_plays) {
 
         push_back_location_dynamic_array(gv->player_move_histories[move_player], movement);
         push_back_location_dynamic_array(gv->player_location_histories[move_player], new_loc);
+        push_back_location_dynamic_array(gv->chronological_player_location_history, new_loc);
         ++gv->move_number;
 
         move = strtok_r(NULL, delimiters, &strtok_save_ptr);
@@ -447,8 +450,13 @@ GameView GvNew(char *past_plays, Message messages[]) {
     }
     new->is_copy = false;
 
-	set_default_gamestate(new);
+    new->chronological_player_location_history = new_location_dynamic_array();
+    if (new->chronological_player_location_history == NULL) {
+        fprintf(stderr, "Couldn't allocate chronological player history\n");
+        exit(EXIT_FAILURE);
+    }
 
+	set_default_gamestate(new);
 	simulate_past_plays(new, past_plays);
 
 	return new;
@@ -456,7 +464,6 @@ GameView GvNew(char *past_plays, Message messages[]) {
 
 void GvFree(GameView gv) {
     assert(gv != NULL);
-    assert(gv->map != NULL);
     assert(gv->dracula_trail != NULL);
 
     // Free player location histories
@@ -471,7 +478,11 @@ void GvFree(GameView gv) {
         free_location_dynamic_array(gv->player_move_histories[i]);
     }
 
-    free_trail(gv->dracula_trail);
+    if (gv->dracula_trail != NULL) {
+        free_trail(gv->dracula_trail);
+    }
+
+    free_location_dynamic_array(gv->chronological_player_location_history);
 
     if (!gv->is_copy) {
         MapFree(gv->map);
@@ -671,6 +682,7 @@ GameView GvMakeCopy(GameView gv) {
     new_gv->score = gv->score;
     new_gv->vampire_location = gv->vampire_location;
     new_gv->is_copy = true;
+    new_gv->chronological_player_location_history = make_copy_location_dynamic_array(gv->chronological_player_location_history);
 
     return new_gv;
 }
@@ -683,4 +695,12 @@ GameCompletionState GvGameState(GameView gv) {
     } else {
         return GAME_NOT_OVER;
     }
+}
+
+const PlaceId* GvGetChronologicalLocationHistory(GameView gv, int* num_moves) {
+    return get_raw_array_from_index_location_dynamic_array(gv->chronological_player_location_history, 0, num_moves);
+}
+
+bool GvIsCopy(GameView gv) {
+    return gv->is_copy;
 }
